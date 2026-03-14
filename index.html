@@ -1,1 +1,433 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  Calculator, 
+  History, 
+  Package, 
+  Settings, 
+  Search, 
+  Barcode, 
+  ExternalLink, 
+  TrendingUp, 
+  Plus, 
+  Trash2, 
+  Edit2, 
+  ChevronRight,
+  FileText,
+  Moon,
+  Download,
+  Upload,
+  BarChart3
+} from 'lucide-react';
 
+const App = () => {
+  const [activeTab, setActiveTab] = useState('calc');
+  const [calcSubTab, setCalcSubTab] = useState('calculator'); // 'calculator' or 'research'
+  const [historySubTab, setHistorySubTab] = useState('list'); // 'list' or 'analysis'
+  const [inventorySubTab, setInventorySubTab] = useState('active'); // 'active' or 'stock'
+  
+  // --- Calculator State ---
+  const [price, setPrice] = useState(0);
+  const [cost, setCost] = useState(0);
+  const [feePercent, setFeePercent] = useState(10);
+  const [shipping, setShipping] = useState(239);
+  const [keepaEnabled, setKeepaEnabled] = useState(true);
+
+  const profit = useMemo(() => {
+    const fee = Math.floor(price * (feePercent / 100));
+    return price - cost - fee - shipping;
+  }, [price, cost, feePercent, shipping]);
+
+  const profitRate = useMemo(() => {
+    if (price <= 0) return 0;
+    return ((profit / price) * 100).toFixed(1);
+  }, [profit, price]);
+
+  // --- Render Helpers ---
+  const renderTabButton = (id, icon, label) => (
+    <button 
+      onClick={() => setActiveTab(id)}
+      className={`flex flex-col items-center justify-center flex-1 py-2 ${activeTab === id ? 'text-blue-500' : 'text-gray-400'}`}
+    >
+      {icon}
+      <span className="text-[10px] mt-1">{label}</span>
+    </button>
+  );
+
+  const renderSegmentedControl = (current, set, options) => (
+    <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
+      {options.map(opt => (
+        <button
+          key={opt.id}
+          onClick={() => set(opt.id)}
+          className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${current === opt.id ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}
+        >
+          {opt.label}
+          {opt.badge && <span className="ml-1 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{opt.badge}</span>}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="flex justify-center items-center min-h-screen bg-gray-200 p-4 font-sans">
+      <div className="w-full max-w-[390px] h-[844px] bg-gray-50 shadow-2xl rounded-[40px] overflow-hidden flex flex-col relative border-[8px] border-gray-800">
+        
+        {/* Status Bar Mock */}
+        <div className="h-10 flex justify-between items-center px-8 pt-4">
+          <span className="text-xs font-bold">9:41</span>
+          <div className="flex gap-1 text-xs">
+            <span>📶</span><span>🔋</span>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-24">
+          
+          {/* --- CALCULATOR TAB --- */}
+          {activeTab === 'calc' && (
+            <div>
+              {renderSegmentedControl(calcSubTab, setCalcSubTab, [
+                { id: 'calculator', label: '計算' },
+                { id: 'research', label: 'リサーチ' }
+              ])}
+
+              {calcSubTab === 'calculator' ? (
+                <div className="space-y-4">
+                  <h1 className="text-xl font-black text-center mb-6">利益計算機</h1>
+                  <div className="flex gap-2">
+                    <input className="w-1/2 p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="仕入れ店舗名" />
+                    <input className="w-1/2 p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="商品名" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="w-1/2">
+                      <label className="text-[10px] text-gray-400 ml-1">販売価格</label>
+                      <input 
+                        type="number" 
+                        value={price || ''} 
+                        onChange={(e) => setPrice(Number(e.target.value))}
+                        className="w-full p-3 rounded-xl border border-gray-200" 
+                        placeholder="0" 
+                      />
+                    </div>
+                    <div className="w-1/2">
+                      <label className="text-[10px] text-red-400 ml-1 font-bold">販売先 (自動計算)</label>
+                      <select 
+                        value={feePercent} 
+                        onChange={(e) => setFeePercent(Number(e.target.value))}
+                        className="w-full p-3 rounded-xl border border-gray-200 bg-white"
+                      >
+                        <option value={10}>メルカリ (10%)</option>
+                        <option value={5}>ヤフオク (5%)</option>
+                        <option value={0}>その他 (0%)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="w-1/2">
+                      <label className="text-[10px] text-gray-400 ml-1">仕入れ原価</label>
+                      <input 
+                        type="number" 
+                        value={cost || ''} 
+                        onChange={(e) => setCost(Number(e.target.value))}
+                        className="w-full p-3 rounded-xl border border-gray-200" 
+                        placeholder="0" 
+                      />
+                    </div>
+                    <div className="w-1/2">
+                      <label className="text-[10px] text-blue-400 ml-1 font-bold">発送方法</label>
+                      <select 
+                        value={shipping} 
+                        onChange={(e) => setShipping(Number(e.target.value))}
+                        className="w-full p-3 rounded-xl border border-gray-200 bg-white"
+                      >
+                        <option value={239}>ネコポス (¥239)</option>
+                        <option value={215}>ゆうパケット (¥215)</option>
+                        <option value={450}>宅急便コン (¥450)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <textarea className="w-full p-3 rounded-xl border border-gray-200 h-24" placeholder="メモ..."></textarea>
+                  
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex justify-around items-center text-center mt-4">
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400">利益額</p>
+                      <p className={`text-3xl font-black ${profit < 0 ? 'text-red-500' : 'text-gray-800'}`}>
+                        ¥{profit.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="w-px h-10 bg-gray-100"></div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400">利益率</p>
+                      <p className="text-3xl font-black text-red-500">{profitRate}%</p>
+                    </div>
+                  </div>
+
+                  <button className="w-full bg-blue-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition-transform mt-4">
+                    データベースに保存
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="h-40 bg-gray-200 rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-500">
+                    <Barcode size={48} strokeWidth={1} />
+                    <p className="text-sm mt-2 font-bold">バーコードをスキャン</p>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <input className="flex-1 p-3 rounded-xl border border-gray-200" placeholder="JAN または タイトルを入力..." />
+                    <button className="bg-blue-500 text-white p-3 rounded-xl"><Search size={20} /></button>
+                  </div>
+
+                  {keepaEnabled && (
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-black flex items-center gap-1"><TrendingUp size={16} className="text-blue-500"/> Keepa 統計</span>
+                        <span className="text-[10px] text-gray-400">過去3ヶ月</span>
+                      </div>
+                      <div className="h-24 flex items-end justify-around gap-1 pt-4">
+                        {[40, 70, 45, 90, 65, 80, 55, 30, 85, 95].map((h, i) => (
+                          <div key={i} className="bg-blue-100 w-full rounded-t-sm" style={{ height: `${h}%` }}></div>
+                        ))}
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <div className="bg-gray-50 p-2 rounded-lg text-center">
+                          <p className="text-[8px] text-gray-400 font-bold uppercase">Rank Ave.</p>
+                          <p className="text-sm font-black">2,410位</p>
+                        </div>
+                        <div className="bg-gray-50 p-2 rounded-lg text-center">
+                          <p className="text-[8px] text-gray-400 font-bold uppercase">Price Min.</p>
+                          <p className="text-sm font-black text-blue-500">¥1,980</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <button className="w-full bg-white p-3 rounded-xl border border-gray-200 flex items-center gap-3 font-bold text-sm">
+                      <div className="w-8 h-8 bg-red-50 rounded-full flex items-center justify-center"><ExternalLink size={16} className="text-red-500" /></div>
+                      メルカリで検索
+                    </button>
+                    <button className="w-full bg-white p-3 rounded-xl border border-gray-200 flex items-center gap-3 font-bold text-sm">
+                      <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center"><Search size={16} className="text-blue-500" /></div>
+                      価格.comで検索
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* --- HISTORY TAB --- */}
+          {activeTab === 'history' && (
+            <div>
+              {renderSegmentedControl(historySubTab, setHistorySubTab, [
+                { id: 'list', label: '履歴' },
+                { id: 'analysis', label: '分析' }
+              ])}
+
+              {historySubTab === 'list' ? (
+                <div className="space-y-4">
+                  <div className="bg-blue-600 p-5 rounded-3xl text-white shadow-lg shadow-blue-100 relative overflow-hidden">
+                    <TrendingUp className="absolute -right-4 -bottom-4 w-24 h-24 opacity-10" />
+                    <p className="text-xs opacity-80 font-bold">本日の合計利益 (2026/03/13)</p>
+                    <h2 className="text-4xl font-black mt-1">¥772</h2>
+                    <div className="mt-4 pt-4 border-t border-blue-500 flex justify-between items-end">
+                      <p className="text-xs opacity-80">今月の累計利益</p>
+                      <p className="text-lg font-black">¥13,656</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-2 rounded-xl text-center">
+                    <span className="text-blue-700 font-black text-sm">2026/03/13 合計利益: ¥772</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-blue-500 border border-gray-100">
+                       <div className="flex justify-between items-start">
+                         <h3 className="font-black text-sm flex-1">レスラー [Blu-ray]</h3>
+                         <span className="text-[10px] text-gray-400">05:14</span>
+                       </div>
+                       <p className="text-[10px] text-gray-400 mt-1">店舗(仕入): ブックオフオンライン / 販路: メルカリ</p>
+                       <div className="mt-2 pt-2 border-t border-gray-50 flex justify-between items-center">
+                         <span className="text-sm font-bold">売価: ¥2,480</span>
+                         <span className="text-sm font-black text-red-500">利益: ¥772 (31.1%)</span>
+                       </div>
+                       <div className="flex justify-end gap-2 mt-3">
+                         <button className="bg-green-700 text-white text-[10px] font-black px-3 py-1.5 rounded-lg flex items-center gap-1"><Package size={10} /> 在庫へ</button>
+                         <button className="text-blue-500 text-[10px] font-black px-2 py-1.5 underline">修正</button>
+                         <button className="text-red-500 text-[10px] font-black px-2 py-1.5 underline">削除</button>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
+                    <h3 className="font-black text-lg mb-4 flex items-center gap-2">
+                      <BarChart3 className="text-blue-500" /> 月次推移
+                    </h3>
+                    <div className="h-48 flex items-end justify-between gap-2 px-2 border-b border-gray-100">
+                      {[30, 50, 40, 80, 100, 70, 90].map((h, i) => (
+                        <div key={i} className="group relative flex-1 flex flex-col items-center">
+                          <div className="bg-blue-500 w-full rounded-t-lg transition-all group-hover:bg-blue-400" style={{ height: `${h}%` }}></div>
+                          <span className="text-[8px] text-gray-400 mt-2">{i+1}月</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-6 grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <p className="text-[10px] text-gray-400 font-bold">平均利益率</p>
+                        <p className="text-2xl font-black text-blue-600">31.2%</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[10px] text-gray-400 font-bold">最高日益</p>
+                        <p className="text-2xl font-black text-green-600">¥4,200</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                    <p className="font-bold text-sm mb-2">よく売れるジャンル</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span>日本映画 (DVD)</span>
+                        <div className="flex-1 mx-4 bg-gray-100 h-2 rounded-full overflow-hidden">
+                          <div className="bg-blue-500 h-full w-[70%]"></div>
+                        </div>
+                        <span className="font-bold">70%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span>アニメ (Blu-ray)</span>
+                        <div className="flex-1 mx-4 bg-gray-100 h-2 rounded-full overflow-hidden">
+                          <div className="bg-blue-500 h-full w-[20%]"></div>
+                        </div>
+                        <span className="font-bold">20%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* --- INVENTORY TAB --- */}
+          {activeTab === 'inventory' && (
+            <div>
+               {renderSegmentedControl(inventorySubTab, setInventorySubTab, [
+                { id: 'active', label: '在庫' },
+                { id: 'stock', label: 'ストック', badge: '11' }
+              ])}
+
+              <div className="bg-green-600 p-5 rounded-3xl text-white shadow-lg shadow-green-100 mb-4">
+                <p className="text-xs opacity-80 font-bold">今月の合計利益 (2026年3月)</p>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-4xl font-black">¥9,162</h2>
+                  <span className="text-xs bg-black/20 px-2 py-0.5 rounded-full">(-50.7%)</span>
+                </div>
+                <div className="mt-4 pt-4 border-t border-green-500 flex justify-between items-end">
+                  <p className="text-xs opacity-80">年間の累計利益 (2026年)</p>
+                  <p className="text-lg font-black">¥55,984 <span className="text-[10px] opacity-60">(-75.4%)</span></p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mb-4">
+                <div className="flex-1 bg-white border border-gray-200 rounded-xl px-3 flex items-center gap-2">
+                  <Search size={14} className="text-gray-400" />
+                  <input className="flex-1 py-2 text-xs" placeholder="検索: 名称, シリーズ, 店舗..." />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex gap-1">
+                      <span className="bg-yellow-100 text-yellow-700 text-[8px] font-black px-1.5 py-0.5 rounded">出品中</span>
+                      <span className="bg-blue-50 text-blue-600 text-[8px] font-black px-1.5 py-0.5 rounded">DVD</span>
+                    </div>
+                    <span className="text-[10px] text-gray-400">仕入: 03/08</span>
+                  </div>
+                  <h3 className="font-black text-sm">リンダリンダリンダ</h3>
+                  <div className="mt-2 bg-gray-50 p-2 rounded-lg flex justify-between items-center">
+                    <span className="text-xs font-bold">売価: ¥3,980</span>
+                    <span className="text-xs font-black text-red-500">利益: ¥1,363 (34.2%)</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-3">
+                    <span className="text-[10px] text-gray-300 italic">場所: 自宅 / 店: ブック...</span>
+                    <div className="flex gap-4">
+                      <button className="text-blue-500 text-[10px] font-black">修正</button>
+                      <button className="text-red-500 text-[10px] font-black">削除</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* --- SETTINGS TAB --- */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6">
+              <h1 className="text-xl font-black text-center">設定</h1>
+              
+              <button className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-indigo-100">
+                <FileText size={20} /> 取扱説明書 (PDF) を開く
+              </button>
+
+              <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center"><Moon size={18} /></div>
+                    <span className="font-black text-sm text-gray-800">ダークモード</span>
+                  </div>
+                  <div className="w-12 h-6 bg-gray-200 rounded-full relative">
+                    <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-xs font-black text-gray-400 ml-2 uppercase tracking-widest">発送方法の管理</h3>
+                <div className="bg-white p-5 rounded-3xl border border-gray-100 space-y-3">
+                  <input className="w-full p-3 rounded-xl bg-gray-50 text-sm" placeholder="配送名 (例: ネコポス)" />
+                  <div className="flex gap-2">
+                    <input className="w-1/2 p-3 rounded-xl bg-gray-50 text-sm" placeholder="送料" />
+                    <input className="w-1/2 p-3 rounded-xl bg-gray-50 text-sm" placeholder="梱包費" />
+                  </div>
+                  <button className="w-full bg-blue-500 text-white font-black py-3 rounded-xl">発送方法を追加</button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-xs font-black text-gray-400 ml-2 uppercase tracking-widest">データ管理</h3>
+                <div className="space-y-2">
+                  <button className="w-full bg-green-600 text-white font-black py-3 rounded-2xl flex items-center justify-center gap-2">
+                    <Download size={16} /> 履歴データをCSVで書き出す
+                  </button>
+                  <button className="w-full bg-purple-600 text-white font-black py-3 rounded-2xl flex items-center justify-center gap-2">
+                    <Upload size={16} /> 設定データを書き出す
+                  </button>
+                  <button className="w-full bg-yellow-600 text-white font-black py-3 rounded-2xl flex items-center justify-center gap-2">
+                    <Upload size={16} /> 設定データを読み込む
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Tab Bar Mock */}
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-md border-t border-gray-100 flex items-center px-4 pb-4">
+          {renderTabButton('calc', <Calculator size={20} />, '計算')}
+          {renderTabButton('history', <History size={20} />, '履歴')}
+          {renderTabButton('inventory', <Package size={20} />, '在庫')}
+          {renderTabButton('settings', <Settings size={20} />, '設定')}
+        </div>
+
+        {/* Home Indicator */}
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-gray-200 rounded-full"></div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
