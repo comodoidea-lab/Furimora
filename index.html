@@ -18,33 +18,43 @@
             font-family: 'Noto Sans JP', sans-serif; 
             -webkit-tap-highlight-color: transparent;
         }
-        /* Mobile Frame for Desktop */
-        @media (min-width: 640px) {
-            .mobile-frame {
-                width: 390px;
-                height: 844px;
-                border: 8px solid #1f2937;
-                border-radius: 40px;
-                position: relative;
-                margin: 20px auto;
-                overflow: hidden;
-            }
+        /* モバイルブラウザのアドレスバー考慮 */
+        .h-dvh {
+            height: 100dvh;
+        }
+        .min-h-dvh {
+            min-height: 100dvh;
         }
     </style>
 </head>
-<body class="bg-gray-200 flex justify-center items-start sm:items-center min-h-screen">
+<body class="bg-gray-100 flex justify-center items-start min-h-dvh">
 
-    <div id="root" class="mobile-frame w-full h-screen sm:h-auto bg-gray-50 shadow-2xl overflow-hidden flex flex-col"></div>
+    <div id="root" class="w-full max-w-4xl min-h-dvh bg-white shadow-sm flex flex-col relative mx-auto"></div>
 
     <script type="text/babel">
-        const { useState, useMemo, useEffect } = React;
+        const { useState, useMemo, useEffect, useRef } = React;
         
-        // Lucide Icon Wrapper
+        // Lucide Icon Wrapper - 不整合エラー防止
         const Icon = ({ name, size = 20, className = "" }) => {
+            const iconRef = useRef(null);
+            
             useEffect(() => {
-                if (window.lucide) window.lucide.createIcons();
-            }, [name]);
-            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+                if (window.lucide && iconRef.current) {
+                    window.lucide.createIcons({
+                        icons: window.lucide.icons,
+                        attrs: {
+                            'stroke-width': 2,
+                        },
+                        nameAttr: 'data-lucide'
+                    });
+                }
+            }, [name, size, className]);
+
+            return (
+                <span key={name} className={`inline-flex items-center justify-center ${className}`} ref={iconRef}>
+                    <i data-lucide={name} style={{ width: size, height: size }}></i>
+                </span>
+            );
         };
 
         const App = () => {
@@ -71,144 +81,192 @@
             const renderTabButton = (id, iconName, label) => (
                 <button 
                     onClick={() => setActiveTab(id)}
-                    className={`flex flex-col items-center justify-center flex-1 py-2 ${activeTab === id ? 'text-blue-500' : 'text-gray-400'}`}
+                    className={`flex flex-col items-center justify-center flex-1 py-3 transition-colors ${activeTab === id ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                    <Icon name={iconName} size={20} />
+                    <Icon name={iconName} size={22} />
                     <span className="text-[10px] mt-1 font-bold">{label}</span>
                 </button>
             );
 
             return (
-                <div className="flex flex-col h-full bg-gray-50 relative">
-                    {/* Status Bar Mock */}
-                    <div className="h-10 flex justify-between items-center px-8 pt-4 shrink-0">
-                        <span className="text-xs font-black">9:41</span>
-                        <div className="flex gap-1 text-xs"><span>📶</span><span>🔋</span></div>
-                    </div>
+                <div className="flex flex-col h-dvh bg-gray-50 relative">
+                    
+                    {/* Header */}
+                    <header className="bg-white border-b border-gray-100 py-4 px-6 shrink-0 flex justify-between items-center">
+                        <h1 className="text-xl font-black text-gray-800 tracking-tighter">Furimora</h1>
+                        <div className="text-[10px] font-bold text-gray-300 px-2 py-1 border border-gray-100 rounded-lg">PRO</div>
+                    </header>
 
                     {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto px-5 pt-4 pb-24">
+                    <div className="flex-1 overflow-y-auto px-4 sm:px-8 pt-6 pb-28">
                         
-                        {/* CALCULATOR */}
+                        {/* CALCULATOR / RESEARCH */}
                         {activeTab === 'calc' && (
-                            <div className="animate-in fade-in duration-300">
+                            <div className="animate-in fade-in duration-300 max-w-2xl mx-auto w-full">
                                 <div className="flex bg-gray-200 rounded-lg p-1 mb-6">
-                                    <button onClick={() => setCalcSubTab('calculator')} className={`flex-1 py-2 text-sm font-black rounded-md ${calcSubTab === 'calculator' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>計算</button>
-                                    <button onClick={() => setCalcSubTab('research')} className={`flex-1 py-2 text-sm font-black rounded-md ${calcSubTab === 'research' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>リサーチ</button>
+                                    <button onClick={() => setCalcSubTab('calculator')} className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${calcSubTab === 'calculator' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>計算</button>
+                                    <button onClick={() => setCalcSubTab('research')} className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${calcSubTab === 'research' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>リサーチ</button>
                                 </div>
                                 
                                 {calcSubTab === 'calculator' ? (
                                     <div className="space-y-4">
-                                        <h1 className="text-xl font-black text-center mb-6 text-gray-800">利益計算機</h1>
-                                        <div className="flex gap-2">
-                                            <input className="w-1/2 p-3 rounded-xl border border-gray-200 bg-white" placeholder="仕入れ店舗名" />
-                                            <input className="w-1/2 p-3 rounded-xl border border-gray-200 bg-white" placeholder="商品名" />
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <input className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none" placeholder="仕入れ店舗名" />
+                                            <input className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none" placeholder="商品名" />
                                         </div>
-                                        <div className="flex gap-2">
-                                            <div className="w-1/2">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex flex-col gap-1">
                                                 <label className="text-[10px] text-gray-400 font-bold ml-1">販売価格</label>
-                                                <input type="number" value={price || ''} onChange={(e) => setPrice(Number(e.target.value))} className="w-full p-3 rounded-xl border border-gray-200" placeholder="0" />
+                                                <input type="number" value={price || ''} onChange={(e) => setPrice(Number(e.target.value))} className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="0" />
                                             </div>
-                                            <div className="w-1/2">
+                                            <div className="flex flex-col gap-1">
                                                 <label className="text-[10px] text-red-500 font-bold ml-1">販売先</label>
-                                                <select value={feePercent} onChange={(e) => setFeePercent(Number(e.target.value))} className="w-full p-3 rounded-xl border border-gray-200 bg-white">
+                                                <select value={feePercent} onChange={(e) => setFeePercent(Number(e.target.value))} className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none">
                                                     <option value={10}>メルカリ (10%)</option>
                                                     <option value={5}>ヤフオク (5%)</option>
+                                                    <option value={0}>その他 (0%)</option>
                                                 </select>
                                             </div>
                                         </div>
                                         
-                                        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 flex justify-around items-center text-center mt-6">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase">利益額</p>
-                                                <p className={`text-3xl font-black ${profit < 0 ? 'text-red-500' : 'text-gray-800'}`}>¥{profit.toLocaleString()}</p>
+                                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex justify-around items-center text-center mt-6">
+                                            <div className="flex-1">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">利益額</p>
+                                                <p className={`text-3xl sm:text-4xl font-black ${profit < 0 ? 'text-red-500' : 'text-gray-800'}`}>¥{profit.toLocaleString()}</p>
                                             </div>
                                             <div className="w-px h-10 bg-gray-100"></div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase">利益率</p>
-                                                <p className="text-3xl font-black text-red-500">{profitRate}%</p>
+                                            <div className="flex-1">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">利益率</p>
+                                                <p className="text-3xl sm:text-4xl font-black text-red-500">{profitRate}%</p>
                                             </div>
                                         </div>
                                         
-                                        <button className="w-full bg-blue-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-200 mt-4 active:scale-95 transition-transform">
+                                        <button className="w-full bg-blue-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-100 mt-4 active:scale-[0.98] transition-all hover:bg-blue-600">
                                             データベースに保存
                                         </button>
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
-                                        <div className="h-40 bg-gray-200 rounded-[2rem] border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-500">
+                                        <div className="h-48 bg-gray-200 rounded-[2rem] border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer">
                                             <Icon name="barcode" size={48} />
                                             <p className="text-sm mt-2 font-black">バーコードをスキャン</p>
                                         </div>
-                                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                                            <p className="text-sm font-black mb-3 flex items-center gap-2"><Icon name="trending-up" size={16} className="text-blue-500"/> Keepa 統計</p>
-                                            <div className="h-20 flex items-end gap-1 px-2">
-                                                {[30, 60, 45, 90, 70, 40, 85].map((h, i) => (
-                                                    <div key={i} className="flex-1 bg-blue-100 rounded-t-sm" style={{ height: `${h}%` }}></div>
-                                                ))}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                                <p className="text-sm font-black mb-3 flex items-center gap-2 text-gray-700">
+                                                    <Icon name="trending-up" size={16} className="text-blue-500"/> Keepa 統計
+                                                </p>
+                                                <div className="h-24 flex items-end gap-1.5 px-1">
+                                                    {[30, 60, 45, 90, 70, 40, 85, 55, 65, 40].map((h, i) => (
+                                                        <div key={i} className="flex-1 bg-blue-100 rounded-t-sm" style={{ height: `${h}%` }}></div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <button className="w-full bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-3 font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">
+                                                    <Icon name="external-link" size={18} className="text-red-500" /> メルカリで検索
+                                                </button>
+                                                <button className="w-full bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-3 font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">
+                                                    <Icon name="search" size={18} className="text-blue-500" /> 価格.comで検索
+                                                </button>
                                             </div>
                                         </div>
-                                        <button className="w-full bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-3 font-bold text-sm shadow-sm">
-                                            <Icon name="external-link" size={18} className="text-red-500" /> メルカリで検索
-                                        </button>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* HISTORY */}
+                        {/* HISTORY / ANALYSIS */}
                         {activeTab === 'history' && (
-                            <div className="animate-in fade-in duration-300">
-                                <div className="flex bg-gray-200 rounded-lg p-1 mb-6">
-                                    <button onClick={() => setHistorySubTab('list')} className={`flex-1 py-2 text-sm font-black rounded-md ${historySubTab === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>履歴</button>
-                                    <button onClick={() => setHistorySubTab('analysis')} className={`flex-1 py-2 text-sm font-black rounded-md ${historySubTab === 'analysis' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>分析</button>
+                            <div className="animate-in fade-in duration-300 w-full">
+                                <div className="flex bg-gray-200 rounded-lg p-1 mb-6 max-w-2xl mx-auto">
+                                    <button onClick={() => setHistorySubTab('list')} className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${historySubTab === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>履歴</button>
+                                    <button onClick={() => setHistorySubTab('analysis')} className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${historySubTab === 'analysis' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>分析</button>
                                 </div>
                                 {historySubTab === 'list' ? (
-                                    <div className="space-y-4">
-                                        <div className="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-100">
-                                            <p className="text-xs opacity-80 font-bold">本日の合計利益</p>
-                                            <h2 className="text-4xl font-black mt-1">¥4,793</h2>
-                                        </div>
-                                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                                            <div className="flex justify-between">
-                                                <h3 className="font-black text-sm">しげちーの大冒険 [DVD]</h3>
-                                                <span className="text-[10px] text-gray-400">18:13</span>
+                                    <div className="space-y-4 max-w-3xl mx-auto">
+                                        <div className="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                            <div>
+                                                <p className="text-xs opacity-80 font-bold">本日の合計利益</p>
+                                                <h2 className="text-4xl font-black mt-1">¥4,793</h2>
                                             </div>
-                                            <p className="text-xs text-red-500 font-black mt-2">利益: ¥578 (38.1%)</p>
+                                            <div className="text-right border-t sm:border-t-0 sm:border-l border-blue-500 pt-3 sm:pt-0 sm:pl-6">
+                                                <p className="text-[10px] opacity-70 font-bold uppercase">今月の累計</p>
+                                                <p className="text-xl font-bold">¥13,656</p>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 transition-colors">
+                                                <div className="flex justify-between">
+                                                    <h3 className="font-black text-sm text-gray-800">しげちーの大冒険 [DVD]</h3>
+                                                    <span className="text-[10px] text-gray-400">18:13</span>
+                                                </div>
+                                                <p className="text-xs text-red-500 font-black mt-2">利益: ¥578 (38.1%)</p>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                                                <div className="flex justify-between">
+                                                    <h3 className="font-black text-sm text-gray-800">アドレナリン1&2 [DVD]セット</h3>
+                                                    <span className="text-[10px] text-gray-400">12:00</span>
+                                                </div>
+                                                <p className="text-xs text-red-500 font-black mt-2">利益: ¥1,172 (29.4%)</p>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
-                                        <h3 className="font-black text-sm mb-4">月次利益推移</h3>
-                                        <div className="h-40 flex items-end gap-2 border-b border-gray-100 px-2">
-                                            {[40, 70, 55, 95, 80].map((h, i) => (
-                                                <div key={i} className="flex-1 bg-green-500 rounded-t-lg" style={{ height: `${h}%` }}></div>
-                                            ))}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+                                            <h3 className="font-black text-sm mb-6 text-gray-700 flex items-center gap-2">
+                                                <Icon name="bar-chart-2" size={18} className="text-blue-500" /> 月次利益推移
+                                            </h3>
+                                            <div className="h-40 flex items-end gap-2 border-b border-gray-100 px-2">
+                                                {[40, 70, 55, 95, 80, 60, 85].map((h, i) => (
+                                                    <div key={i} className="flex-1 bg-green-500 rounded-t-lg hover:bg-green-400 transition-colors" style={{ height: `${h}%` }}></div>
+                                                ))}
+                                            </div>
+                                            <div className="mt-6 flex justify-around">
+                                                <div className="text-center"><p className="text-[10px] text-gray-400 font-bold">平均利益率</p><p className="text-xl font-black">32.1%</p></div>
+                                                <div className="text-center"><p className="text-[10px] text-gray-400 font-bold">売上合計</p><p className="text-xl font-black">¥42,800</p></div>
+                                            </div>
                                         </div>
-                                        <div className="mt-6 flex justify-around">
-                                            <div className="text-center"><p className="text-[10px] text-gray-400 font-bold">平均利益率</p><p className="text-xl font-black">32.1%</p></div>
-                                            <div className="text-center"><p className="text-[10px] text-gray-400 font-bold">売上合計</p><p className="text-xl font-black">¥42,800</p></div>
+                                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+                                             <h3 className="font-black text-sm mb-4 text-gray-700">店舗別利益シェア</h3>
+                                             <div className="space-y-3">
+                                                {[
+                                                    {name: 'ブックオフ', val: 70, color: 'bg-blue-500'},
+                                                    {name: '古本市場', val: 20, color: 'bg-green-500'},
+                                                    {name: 'その他', val: 10, color: 'bg-gray-300'}
+                                                ].map(shop => (
+                                                    <div key={shop.name} className="space-y-1">
+                                                        <div className="flex justify-between text-[10px] font-bold">
+                                                            <span>{shop.name}</span>
+                                                            <span>{shop.val}%</span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                                            <div className={`${shop.color} h-full`} style={{width: `${shop.val}%`}}></div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                             </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {activeTab === 'inventory' && <div className="text-center py-20 font-black text-gray-300">在庫管理（構築中）</div>}
-                        {activeTab === 'settings' && <div className="text-center py-20 font-black text-gray-300">設定（構築中）</div>}
+                        {activeTab === 'inventory' && <div className="text-center py-20 font-black text-gray-300 animate-pulse">在庫管理モジュール 構築中...</div>}
+                        {activeTab === 'settings' && <div className="text-center py-20 font-black text-gray-300 animate-pulse">システム設定 構築中...</div>}
 
                     </div>
 
-                    {/* Tab Bar */}
-                    <div className="absolute bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center px-4 pb-4 shrink-0">
-                        {renderTabButton('calc', 'calculator', '計算')}
-                        {renderTabButton('history', 'history', '履歴')}
-                        {renderTabButton('inventory', 'package', '在庫')}
-                        {renderTabButton('settings', 'settings', '設定')}
-                    </div>
-                    
-                    {/* Home Indicator */}
-                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-gray-200 rounded-full"></div>
+                    {/* Tab Bar - Responsive Width */}
+                    <nav className="fixed bottom-0 left-0 right-0 flex justify-center pointer-events-none z-50">
+                        <div className="w-full max-w-4xl bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center px-4 pb-2 shrink-0 shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.08)] pointer-events-auto h-20">
+                            {renderTabButton('calc', 'calculator', '計算')}
+                            {renderTabButton('history', 'history', '履歴')}
+                            {renderTabButton('inventory', 'package', '在庫')}
+                            {renderTabButton('settings', 'settings', '設定')}
+                        </div>
+                    </nav>
                 </div>
             );
         };
