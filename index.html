@@ -77,10 +77,18 @@
             const [historySubTab, setHistorySubTab] = useState('list');
             
             // State
+            const [shopName, setShopName] = useState(''); // 店舗名
+            const [itemName, setItemName] = useState(''); // 商品名
             const [price, setPrice] = useState(0);
             const [cost, setCost] = useState(0);
             const [feePercent, setFeePercent] = useState(10);
             const [shipping, setShipping] = useState(239);
+            
+            const [historyItems, setHistoryItems] = useState([]); // GASから取得した履歴
+            const [isSaving, setIsSaving] = useState(false);
+
+            // GASのデプロイURL
+            const GAS_URL = "https://script.google.com/macros/s/AKfycbx3rimuQtzr-5DDpem9cqEpZSdcoaHWHgCKWF48Kg2jz-pY1kY2xVyMLj6vBm2fmSbI/exec";
 
             const profit = useMemo(() => {
                 const fee = Math.floor(price * (feePercent / 100));
@@ -91,6 +99,57 @@
                 if (price <= 0) return 0;
                 return ((profit / price) * 100).toFixed(1);
             }, [profit, price]);
+
+            // --- 修正1: データを保存する関数 ---
+            const saveToGas = async () => {
+                if (!itemName) return alert("商品名を入力してください");
+                setIsSaving(true);
+
+                const payload = {
+                    date: new Date().toLocaleString('ja-JP'),
+                    shopName,
+                    itemName,
+                    price,
+                    cost,
+                    fee: Math.floor(price * (feePercent / 100)),
+                    shipping,
+                    profit,
+                    profitRate
+                };
+
+                try {
+                    // POSTリクエストを送信
+                    const response = await fetch(GAS_URL, {
+                        method: "POST",
+                        mode: "no-cors", // GASのリダイレクト対策
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    // no-cors の場合、レスポンス内容は確認できないが成功とみなす
+                    alert("送信リクエストを完了しました。\n(GAS側の処理を確認してください)");
+                    
+                    // 入力をリセット
+                    setShopName('');
+                    setItemName('');
+                    setPrice(0);
+                    setCost(0);
+                } catch (error) {
+                    console.error("保存失敗:", error);
+                    alert("保存に失敗しました。GASの設定を確認してください。");
+                } finally {
+                    setIsSaving(false);
+                }
+            };
+
+            // --- 修正2: 履歴を取得する処理 ---
+            useEffect(() => {
+                if (activeTab === 'history') {
+                    fetch(GAS_URL)
+                        .then(res => res.json())
+                        .then(data => setHistoryItems(data))
+                        .catch(err => console.error("データ取得失敗:", err));
+                }
+            }, [activeTab]);
 
             const renderTabButton = (id, iconName, label) => (
                 <button 
@@ -125,8 +184,18 @@
                                 {calcSubTab === 'calculator' ? (
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <input className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none" placeholder="仕入れ店舗名" />
-                                            <input className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none" placeholder="商品名" />
+                                            <input 
+                                                className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none" 
+                                                placeholder="仕入れ店舗名" 
+                                                value={shopName}
+                                                onChange={(e) => setShopName(e.target.value)}
+                                            />
+                                            <input 
+                                                className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none" 
+                                                placeholder="商品名" 
+                                                value={itemName}
+                                                onChange={(e) => setItemName(e.target.value)}
+                                            />
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="flex flex-col gap-1">
@@ -171,8 +240,12 @@
                                             </div>
                                         </div>
                                         
-                                        <button className="w-full bg-blue-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-100 mt-4 active:scale-[0.98] transition-all hover:bg-blue-600">
-                                            データベースに保存
+                                        <button 
+                                            onClick={saveToGas}
+                                            disabled={isSaving}
+                                            className={`w-full font-black py-4 rounded-2xl shadow-lg mt-4 transition-all ${isSaving ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-100 active:scale-[0.98]'}`}
+                                        >
+                                            {isSaving ? "保存中..." : "データベースに保存"}
                                         </button>
                                     </div>
                                 ) : (
@@ -226,20 +299,27 @@
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 transition-colors">
-                                                <div className="flex justify-between">
-                                                    <h3 className="font-black text-sm text-gray-800">しげちーの大冒険 [DVD]</h3>
-                                                    <span className="text-[10px] text-gray-400">18:13</span>
+                                            {historyItems.length > 0 ? (
+                                                historyItems.map((item, index) => (
+                                                    <div key={index} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 transition-colors">
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                <h3 className="font-black text-sm text-gray-800">{item.itemName || '名称未定'}</h3>
+                                                                <p className="text-[10px] text-gray-400 mt-0.5">{item.shopName || '店舗名なし'}</p>
+                                                            </div>
+                                                            <span className="text-[10px] text-gray-400 shrink-0">{item.date ? item.date.split(' ')[0] : ''}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end mt-3">
+                                                            <p className="text-xs text-red-500 font-black">利益: ¥{Number(item.profit).toLocaleString()} ({item.profitRate}%)</p>
+                                                            <p className="text-[10px] text-gray-500">売値: ¥{Number(item.price).toLocaleString()}</p>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="col-span-full py-10 text-center text-gray-400 font-bold">
+                                                    履歴データがありません
                                                 </div>
-                                                <p className="text-xs text-red-500 font-black mt-2">利益: ¥578 (38.1%)</p>
-                                            </div>
-                                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                                                <div className="flex justify-between">
-                                                    <h3 className="font-black text-sm text-gray-800">アドレナリン1&2 [DVD]セット</h3>
-                                                    <span className="text-[10px] text-gray-400">12:00</span>
-                                                </div>
-                                                <p className="text-xs text-red-500 font-black mt-2">利益: ¥1,172 (29.4%)</p>
-                                            </div>
+                                            )}
                                         </div>
                                     </div>
                                 ) : (
