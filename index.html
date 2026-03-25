@@ -642,7 +642,16 @@ const App = () => {
         return { today, month, totalProfit, totalSales, avgProfitRate, shopMap, last6 };
     }, [historyItems]);
 
-    // ── Fetch history from GAS ─────────────────────────────────────────────────
+    // ── GAS helpers ────────────────────────────────────────────────────────────
+    const gasPost = (action, payload) => {
+        fetch(GAS_URL, {
+            method: 'POST',
+            mode:   'no-cors',
+            body:   JSON.stringify({ action, ...payload }),
+        }).catch(err => console.error(`GAS POST [${action}] 失敗:`, err));
+    };
+
+    // ── Fetch from GAS ─────────────────────────────────────────────────────────
     const fetchHistory = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -650,13 +659,39 @@ const App = () => {
             const data = await res.json();
             if (Array.isArray(data)) setHistoryItems(data);
         } catch (err) {
-            console.error('データ取得失敗:', err);
+            console.error('履歴取得失敗:', err);
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    useEffect(() => { fetchHistory(); }, []);
+    const fetchInventory = useCallback(async () => {
+        try {
+            const res  = await fetch(`${GAS_URL}?type=inventory&t=${Date.now()}`);
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                setInventory(data);
+                ls.set('furimora_inventory', data);
+            }
+        } catch (err) {
+            console.error('ストック取得失敗:', err);
+        }
+    }, []);
+
+    const fetchStock = useCallback(async () => {
+        try {
+            const res  = await fetch(`${GAS_URL}?type=stock&t=${Date.now()}`);
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                setStock(data);
+                ls.set('furimora_stock', data);
+            }
+        } catch (err) {
+            console.error('在庫取得失敗:', err);
+        }
+    }, []);
+
+    useEffect(() => { fetchHistory(); fetchInventory(); fetchStock(); }, []);
     useEffect(() => { if (activeTab === 'history') fetchHistory(); }, [activeTab]);
 
     // ── Save (Optimistic) ──────────────────────────────────────────────────────
@@ -691,7 +726,7 @@ const App = () => {
         fetch(GAS_URL, {
             method: 'POST',
             mode:   'no-cors',
-            body:   JSON.stringify(newItem),
+            body:   JSON.stringify({ action: 'saveHistory', ...newItem }),
         }).catch(err => console.error('GAS POST失敗:', err));
 
         // 4. Re-fetch after GAS has time to process
@@ -715,14 +750,19 @@ const App = () => {
             expectedProfit: tp - bp - ef - settings.defaultShipping,
         };
         persistInventory([item, ...inventory]);
+        gasPost('upsertInventory', { item });
         setInvForm({ name: '', buyPrice: '', targetPrice: '', shopName: '', memo: '' });
-        setToast({ message: '在庫に追加しました', type: 'success' });
+        setToast({ message: 'ストックに追加しました', type: 'success' });
     };
 
-    const removeInventory = id => persistInventory(inventory.filter(i => i.id !== id));
+    const removeInventory = id => {
+        persistInventory(inventory.filter(i => i.id !== id));
+        gasPost('deleteInventory', { id });
+    };
 
     const updateInvItem = item => {
         persistInventory(inventory.map(i => i.id === item.id ? item : i));
+        gasPost('upsertInventory', { item });
         setEditingInvItem(null);
         setToast({ message: '更新しました', type: 'success' });
     };
@@ -744,9 +784,10 @@ const App = () => {
             pinned:     false,
         };
         persistStock([newStock, ...stock]);
+        gasPost('upsertStock', { item: newStock });
         removeInventory(item.id);
         setInvSubTab('stock');
-        setToast({ message: 'ストックへ移動しました', type: 'success' });
+        setToast({ message: '在庫へ移動しました', type: 'success' });
     };
 
     const soldInventory = item => {
@@ -795,12 +836,19 @@ const App = () => {
             pinned:     false,
         };
         persistStock([newItem, ...stock]);
+        gasPost('upsertStock', { item: newItem });
         setToast({ message: 'ストックに追加しました', type: 'success' });
     };
 
-    const removeStock = id => persistStock(stock.filter(i => i.id !== id));
+    const removeStock = id => {
+        persistStock(stock.filter(i => i.id !== id));
+        gasPost('deleteStock', { id });
+    };
 
-    const updateStockItem = item => persistStock(stock.map(i => i.id === item.id ? item : i));
+    const updateStockItem = item => {
+        persistStock(stock.map(i => i.id === item.id ? item : i));
+        gasPost('upsertStock', { item });
+    };
 
     // ── History item actions ──────────────────────────────────────────────────
     const addHistoryToInventory = item => {
@@ -818,6 +866,7 @@ const App = () => {
             expectedProfit: tp - bp - ef - settings.defaultShipping,
         };
         persistInventory([newInv, ...inventory]);
+        gasPost('upsertInventory', { item: newInv });
         setToast({ message: 'ストックに追加しました', type: 'success' });
     };
 
@@ -1235,9 +1284,9 @@ const App = () => {
                                             </div>
                                             <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
                                                 <div className="flex gap-3 text-[10px] text-gray-400 font-bold">
-                                                    <span>仕入 ¥{item.buyPrice.toLocaleString()}</span>
+                                                    <span>仕入 ¥{(Number(item.buyPrice) || 0).toLocaleString()}</span>
                                                     <span>→</span>
-                                                    <span>売値 ¥{item.targetPrice.toLocaleString()}</span>
+                                                    <span>売値 ¥{(Number(item.targetPrice) || 0).toLocaleString()}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <button onClick={() => setEditingInvItem(item)}
@@ -1336,7 +1385,7 @@ const App = () => {
                                                 </div>
                                                 <div className="mt-3 pt-2 border-t border-gray-50 flex justify-between items-center gap-2">
                                                     <div className="flex gap-2 text-[10px] font-bold shrink-0">
-                                                        <span className="text-gray-400">仕入 ¥{item.buyPrice.toLocaleString()}</span>
+                                                        <span className="text-gray-400">仕入 ¥{(Number(item.buyPrice) || 0).toLocaleString()}</span>
                                                         <span className="text-gray-300">→</span>
                                                         <span className={profitNum >= 0 ? 'text-green-600' : 'text-red-500'}>
                                                             ¥{profitNum.toLocaleString()} ({item.profitRate}%)
