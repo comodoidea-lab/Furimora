@@ -10,10 +10,12 @@
  * 6. アクセスできるユーザーを「全員」に設定してデプロイします。
  */
 
+const SPREADSHEET_ID = '11E7cJLSn73jU1oA9mSfr6bDpOKdUd_bbOJqPzVDXahE';
+
 function doPost(e) {
   try {
     const params = JSON.parse(e.postData.contents);
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheets()[0]; // 最初のシートを使用
     
     // ヘッダーがない場合は作成
@@ -42,7 +44,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheets()[0];
   const data = sheet.getDataRange().getValues();
   
@@ -79,4 +81,15 @@ function doGet() {
   
   return ContentService.createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// 初回セットアップ用関数（GAS上で手動実行も可能）
+function initSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheets()[0];
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["日付", "店舗名", "商品名", "販売価格", "仕入れ原価", "手数料", "送料", "利益額", "利益率"]);
+    return "ヘッダーを作成しました。";
+  }
+  return "既にヘッダーが存在します。";
 }

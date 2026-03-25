@@ -100,6 +100,46 @@
                 return ((profit / price) * 100).toFixed(1);
             }, [profit, price]);
 
+            // --- 統計情報の計算 ---
+            const stats = useMemo(() => {
+                const now = new Date();
+                const todayStr = now.toLocaleDateString('ja-JP');
+                const thisMonthStr = `${now.getFullYear()}/${now.getMonth() + 1}`;
+
+                return historyItems.reduce((acc, item) => {
+                    if (!item.date) return acc;
+                    // GASの date 形式 (YYYY/MM/DD ...) を考慮
+                    const itemDate = new Date(item.date);
+                    const itemDateStr = itemDate.toLocaleDateString('ja-JP');
+                    const itemMonthStr = `${itemDate.getFullYear()}/${itemDate.getMonth() + 1}`;
+
+                    const profit = Number(item.profit) || 0;
+
+                    if (itemDateStr === todayStr) {
+                        acc.today += profit;
+                    }
+                    if (itemMonthStr === thisMonthStr) {
+                        acc.month += profit;
+                    }
+                    return acc;
+                }, { today: 0, month: 0 });
+            }, [historyItems]);
+
+            // --- 履歴を取得する関数 ---
+            const fetchHistory = async () => {
+                try {
+                    const res = await fetch(GAS_URL);
+                    const data = await res.json();
+                    if (data.status === "error") {
+                        console.error("GASエラー:", data.message);
+                    } else {
+                        setHistoryItems(Array.isArray(data) ? data : []);
+                    }
+                } catch (err) {
+                    console.error("データ取得失敗:", err);
+                }
+            };
+
             // --- 修正1: データを保存する関数 ---
             const saveToGas = async () => {
                 if (!itemName) return alert("商品名を入力してください");
@@ -133,6 +173,9 @@
                     setItemName('');
                     setPrice(0);
                     setCost(0);
+
+                    // 履歴を再取得（GASの処理時間を考慮して少し待つ）
+                    setTimeout(fetchHistory, 1500);
                 } catch (error) {
                     console.error("保存失敗:", error);
                     alert("保存に失敗しました。GASの設定を確認してください。");
@@ -143,13 +186,8 @@
 
             // --- 修正2: 履歴を取得する処理 ---
             useEffect(() => {
-                if (activeTab === 'history') {
-                    fetch(GAS_URL)
-                        .then(res => res.json())
-                        .then(data => setHistoryItems(data))
-                        .catch(err => console.error("データ取得失敗:", err));
-                }
-            }, [activeTab]);
+                fetchHistory();
+            }, [activeTab === 'history']);
 
             const renderTabButton = (id, iconName, label) => (
                 <button 
@@ -291,11 +329,11 @@
                                         <div className="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                             <div>
                                                 <p className="text-xs opacity-80 font-bold">本日の合計利益</p>
-                                                <h2 className="text-4xl font-black mt-1">¥4,793</h2>
+                                                <h2 className="text-4xl font-black mt-1">¥{stats.today.toLocaleString()}</h2>
                                             </div>
                                             <div className="text-right border-t sm:border-t-0 sm:border-l border-blue-500 pt-3 sm:pt-0 sm:pl-6">
                                                 <p className="text-[10px] opacity-70 font-bold uppercase">今月の累計</p>
-                                                <p className="text-xl font-bold">¥13,656</p>
+                                                <p className="text-xl font-bold">¥{stats.month.toLocaleString()}</p>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
