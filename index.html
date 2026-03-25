@@ -3,19 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>フリモーラ - Web Preview</title>
-    
+    <title>フリモーラ</title>
+
     <!-- PWA & Mobile Optimization -->
     <meta name="theme-color" content="#3b82f6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="フリモーラ">
     <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- Favicon (Base64 Encoded for Safari Compatibility) -->
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wnpOmPC90ZXh0Pjwvc3ZnPg==">
-    
-    <!-- Apple Touch Icon (Base64 Encoded) -->
     <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzNiODJmNiIgcng9IjIwIi8+PHRleHQgeT0iLjc1ZW0iIHg9Ii4xZW0iIGZvbnQtc2l6ZT0iNzAiIGZpbGw9IndoaXRlIj7wnpOmPC90ZXh0Pjwvc3ZnPg==">
 
     <!-- React & Babel CDNs -->
@@ -26,401 +24,1374 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
-        body { 
-            font-family: 'Noto Sans JP', sans-serif; 
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
-        /* モバイルブラウザのアドレスバー考慮 */
-        .h-dvh {
-            height: 100dvh;
+        .h-dvh  { height: 100dvh; }
+        .min-h-dvh { min-height: 100dvh; }
+        @keyframes slideDown {
+            from { transform: translateY(-16px); opacity: 0; }
+            to   { transform: translateY(0);     opacity: 1; }
         }
-        .min-h-dvh {
-            min-height: 100dvh;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
         }
+        .slide-down { animation: slideDown 0.25s ease forwards; }
+        .fade-in    { animation: fadeIn   0.25s ease forwards; }
+
+        /* ── Dark mode overrides ── */
+        html.dark body { background-color: #0f1117; }
+        html.dark .bg-white    { background-color: #1e2330 !important; }
+        html.dark .bg-gray-50  { background-color: #0f1117 !important; }
+        html.dark .bg-gray-100 { background-color: #1e2330 !important; }
+        html.dark .bg-gray-200 { background-color: #2a3142 !important; }
+        html.dark .text-gray-800 { color: #f1f5f9 !important; }
+        html.dark .text-gray-700 { color: #e2e8f0 !important; }
+        html.dark .text-gray-600 { color: #cbd5e1 !important; }
+        html.dark .text-gray-500 { color: #94a3b8 !important; }
+        html.dark .text-gray-400 { color: #64748b !important; }
+        html.dark .text-gray-300 { color: #475569 !important; }
+        html.dark .border-gray-100 { border-color: #2a3142 !important; }
+        html.dark .border-gray-200 { border-color: #374151 !important; }
+        html.dark input:not([type=file]):not([type=range]),
+        html.dark select,
+        html.dark textarea {
+            background-color: #2a3142 !important;
+            color: #f1f5f9 !important;
+            border-color: #3d4d63 !important;
+        }
+        html.dark input::placeholder { color: #64748b !important; }
+        html.dark .bg-white\/90 { background-color: rgba(30,35,48,0.92) !important; }
+        html.dark .shadow-sm    { box-shadow: 0 1px 3px 0 rgba(0,0,0,0.5) !important; }
+        html.dark .shadow-lg,
+        html.dark .shadow-xl,
+        html.dark .shadow-2xl   { box-shadow: 0 4px 16px 0 rgba(0,0,0,0.5) !important; }
+        html.dark [class*="shadow-blue"],
+        html.dark [class*="shadow-green"],
+        html.dark [class*="shadow-purple"] { box-shadow: none !important; }
     </style>
 </head>
 <body class="bg-gray-100 flex justify-center items-start min-h-dvh">
+<div id="root" class="w-full max-w-4xl min-h-dvh bg-white shadow-sm flex flex-col relative mx-auto"></div>
 
-    <div id="root" class="w-full max-w-4xl min-h-dvh bg-white shadow-sm flex flex-col relative mx-auto"></div>
+<script type="text/babel">
+const { useState, useMemo, useEffect, useRef, useCallback } = React;
 
-    <script type="text/babel">
-        const { useState, useMemo, useEffect, useRef } = React;
-        
-        // Lucide Icon Wrapper - 不整合エラー防止
-        const Icon = ({ name, size = 20, className = "" }) => {
-            const iconRef = useRef(null);
-            
-            useEffect(() => {
-                if (window.lucide && iconRef.current) {
-                    window.lucide.createIcons({
-                        icons: window.lucide.icons,
-                        attrs: {
-                            'stroke-width': 2,
-                        },
-                        nameAttr: 'data-lucide'
-                    });
-                }
-            }, [name, size, className]);
+// ─── GAS endpoint ────────────────────────────────────────────────────────────
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzIApMS04CP_RGrQZUKRFK4sbi24j_OCZxm6K8Vp-ka376QgZJnsDRMINKiwtsO1Ltn/exec";
 
-            return (
-                <span key={name} className={`inline-flex items-center justify-center ${className}`} ref={iconRef}>
-                    <i data-lucide={name} style={{ width: size, height: size }}></i>
-                </span>
-            );
+// ─── Default master data ──────────────────────────────────────────────────────
+const DEFAULT_SHIPPING = [
+    { id: 1, name: 'ネコポス',          fee: 210, packing: 29, isDefault: true  },
+    { id: 2, name: 'ゆうパケットポスト', fee: 215, packing: 35, isDefault: false },
+    { id: 3, name: 'ゆうパケットプラス', fee: 455, packing: 65, isDefault: false },
+    { id: 4, name: '宅急便コンパクト',   fee: 450, packing: 70, isDefault: false },
+    { id: 5, name: 'ゆうパック60',      fee: 660, packing: 0,  isDefault: false },
+];
+const DEFAULT_PLATFORMS = [
+    { id: 1, name: 'メルカリ', fee: 10,  isDefault: true  },
+    { id: 2, name: 'ラクマ',   fee: 8.8, isDefault: false },
+    { id: 3, name: 'ヤフオク', fee: 5,   isDefault: false },
+    { id: 4, name: 'Amazon',   fee: 15,  isDefault: false },
+];
+
+const STATUSES = ['評価待ち', '出品前', '出品中', '入金待ち', '発送待ち', '取引完了', 'その他'];
+const STATUS_COLORS = {
+    '評価待ち': 'bg-yellow-100 text-yellow-700',
+    '出品前':   'bg-blue-100 text-blue-700',
+    '出品中':   'bg-green-100 text-green-700',
+    '入金待ち': 'bg-orange-100 text-orange-700',
+    '発送待ち': 'bg-purple-100 text-purple-700',
+    '取引完了': 'bg-gray-100 text-gray-500',
+    'その他':   'bg-gray-100 text-gray-400',
+};
+
+// ─── Lucide icon wrapper ──────────────────────────────────────────────────────
+const Icon = ({ name, size = 20, className = "" }) => {
+    const ref = useRef(null);
+    useEffect(() => {
+        if (window.lucide && ref.current)
+            window.lucide.createIcons({ attrs: { 'stroke-width': 2 }, nameAttr: 'data-lucide' });
+    }, [name]);
+    return (
+        <span className={`inline-flex items-center justify-center ${className}`} ref={ref}>
+            <i data-lucide={name} style={{ width: size, height: size }} />
+        </span>
+    );
+};
+
+// ─── Toast notification ───────────────────────────────────────────────────────
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => { const t = setTimeout(onClose, 2600); return () => clearTimeout(t); }, []);
+    const bg = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+    return (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[999] px-5 py-3 rounded-2xl shadow-xl text-sm font-black text-white slide-down flex items-center gap-2 ${bg}`}>
+            <Icon name={icon} size={16} />{message}
+        </div>
+    );
+};
+
+// ─── Toggle switch ────────────────────────────────────────────────────────────
+const Toggle = ({ checked, onChange }) => (
+    <button onClick={() => onChange(!checked)}
+        className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none ${checked ? 'bg-blue-500' : 'bg-gray-300'}`}>
+        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-0'}`} />
+    </button>
+);
+
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+const ls = {
+    get: (k, def) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : def; } catch { return def; } },
+    set: (k, v)   => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+// ─── Date formatter ───────────────────────────────────────────────────────────
+const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const s = String(dateStr);
+    const d = new Date(s.replace(/\//g, '-').split(' ')[0]);
+    if (isNaN(d)) return s.split('T')[0];
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+};
+
+// ─── Unified Item Edit Modal (履歴 / ストック / 在庫 共通) ────────────────────
+const UnifiedEditModal = ({ title, item, onSave, onClose, platforms, shippingMethods, showMemo = false }) => {
+    const defPlat = platforms.find(p => p.isDefault) || platforms[0] || { fee: 10 };
+    const defShip = shippingMethods.find(m => m.isDefault) || shippingMethods[0] || { fee: 0, packing: 0 };
+
+    const itemSell = item.sellPrice ?? item.price ?? item.targetPrice ?? 0;
+    const itemBuy  = item.buyPrice  ?? item.cost  ?? 0;
+    const itemShip = item.shipping  ?? (defShip.fee + defShip.packing);
+
+    // Try to find matching shipping value in dropdown options
+    const matchShip = shippingMethods.find(m => m.fee + m.packing === itemShip);
+    const initShip  = matchShip ? matchShip.fee + matchShip.packing : defShip.fee + defShip.packing;
+
+    // Try to derive feePercent from stored fee/price ratio
+    let initFee = item.feePercent ?? defPlat.fee;
+    if (item.feePercent == null && itemSell > 0 && item.fee != null) {
+        const derived = Math.round((Number(item.fee) / itemSell) * 1000) / 10;
+        const mp = platforms.find(p => Math.abs(p.fee - derived) < 0.2);
+        if (mp) initFee = mp.fee;
+    }
+
+    const [form, setForm] = useState({
+        name:       item.name || item.itemName || '',
+        shopName:   item.shopName  || '',
+        buyPrice:   itemBuy,
+        sellPrice:  itemSell,
+        feePercent: initFee,
+        shipping:   initShip,
+        memo:       item.memo || '',
+    });
+    const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+    const feeAmt = Math.floor((Number(form.sellPrice)||0) * (Number(form.feePercent)||0) / 100);
+    const profit = (Number(form.sellPrice)||0) - (Number(form.buyPrice)||0) - feeAmt - (Number(form.shipping)||0);
+    const rate   = Number(form.sellPrice) > 0 ? ((profit / Number(form.sellPrice)) * 100).toFixed(1) : '0.0';
+
+    const handleSave = () => {
+        const sp = Number(form.sellPrice) || 0;
+        const bp = Number(form.buyPrice)  || 0;
+        const sh = Number(form.shipping)  || 0;
+        onSave({
+            ...item,
+            name:           form.name,
+            itemName:       form.name,
+            shopName:       form.shopName,
+            buyPrice:       bp,
+            cost:           bp,
+            sellPrice:      sp,
+            price:          sp,
+            targetPrice:    sp,
+            feePercent:     Number(form.feePercent) || 0,
+            fee:            feeAmt,
+            shipping:       sh,
+            profit,
+            profitRate:     rate,
+            expectedProfit: profit,
+            memo:           form.memo,
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-[998] flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center">
+                    <h3 className="font-black text-base text-gray-800">{title}</h3>
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition-colors">
+                        <Icon name="x" size={18} />
+                    </button>
+                </div>
+                <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-gray-400 font-bold ml-1">商品名</label>
+                            <input className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                value={form.name} onChange={e => set('name', e.target.value)} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-gray-400 font-bold ml-1">店舗名</label>
+                            <input className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                value={form.shopName} onChange={e => set('shopName', e.target.value)} />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-gray-400 font-bold ml-1">仕入れ価格</label>
+                            <input type="number" inputMode="numeric" className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-gray-400 font-bold ml-1">販売価格</label>
+                            <input type="number" inputMode="numeric" className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                value={form.sellPrice} onChange={e => set('sellPrice', e.target.value)} />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-red-400 font-bold ml-1">販売先</label>
+                            <select value={form.feePercent} onChange={e => set('feePercent', Number(e.target.value))}
+                                className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm">
+                                {platforms.map(p => (
+                                    <option key={p.id} value={p.fee}>{p.name} ({p.fee}%)</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-blue-400 font-bold ml-1">発送方法</label>
+                            <select value={form.shipping} onChange={e => set('shipping', Number(e.target.value))}
+                                className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm">
+                                {shippingMethods.map(m => (
+                                    <option key={m.id} value={m.fee + m.packing}>{m.name} (¥{(m.fee + m.packing).toLocaleString()})</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    {showMemo && (
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-gray-400 font-bold ml-1">メモ</label>
+                            <input className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                value={form.memo} onChange={e => set('memo', e.target.value)} placeholder="任意" />
+                        </div>
+                    )}
+                    <div className="bg-gray-50 rounded-xl p-3 flex justify-around text-center">
+                        <div>
+                            <p className="text-[9px] text-gray-400 font-bold">利益額</p>
+                            <p className={`text-base font-black ${profit < 0 ? 'text-red-500' : 'text-green-600'}`}>¥{profit.toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <p className="text-[9px] text-gray-400 font-bold">利益率</p>
+                            <p className={`text-base font-black ${Number(rate) < 0 ? 'text-red-500' : 'text-green-600'}`}>{rate}%</p>
+                        </div>
+                    </div>
+                </div>
+                <button onClick={handleSave}
+                    className="w-full bg-blue-500 text-white font-black py-3.5 rounded-2xl hover:bg-blue-600 active:scale-[0.98] transition-all shadow-lg shadow-blue-100">
+                    保存する
+                </button>
+            </div>
+        </div>
+    );
+};
+
+// ─── Settings Panel ───────────────────────────────────────────────────────────
+const SettingsPanel = ({
+    settings, onSave, historyCount, historyItems,
+    darkMode, onToggleDark,
+    shippingMethods, onUpdateShipping,
+    platforms, onUpdatePlatforms,
+    showToast,
+}) => {
+    const [form,         setForm]         = useState(settings);
+    const [newShip,      setNewShip]      = useState({ name: '', fee: '', packing: '' });
+    const [showShipList, setShowShipList] = useState(false);
+    const [newPlat,      setNewPlat]      = useState({ name: '', fee: '' });
+    const [showPlatList, setShowPlatList] = useState(false);
+    const fileRef = useRef(null);
+
+    const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+    // ── Shipping CRUD ─────────────────────────────────────────────────────────
+    const addShipping = () => {
+        if (!newShip.name.trim()) return;
+        onUpdateShipping([...shippingMethods, {
+            id: Date.now(), name: newShip.name.trim(),
+            fee: Number(newShip.fee) || 0, packing: Number(newShip.packing) || 0, isDefault: false,
+        }]);
+        setNewShip({ name: '', fee: '', packing: '' });
+        showToast({ message: '発送方法を追加しました', type: 'success' });
+    };
+    const removeShipping = id => onUpdateShipping(shippingMethods.filter(m => m.id !== id));
+    const setDefaultShipping = id => onUpdateShipping(shippingMethods.map(m => ({ ...m, isDefault: m.id === id })));
+    const moveShipping = (id, dir) => {
+        const arr = [...shippingMethods];
+        const i = arr.findIndex(m => m.id === id);
+        if (dir === 'up'   && i > 0)               [arr[i-1], arr[i]] = [arr[i], arr[i-1]];
+        if (dir === 'down' && i < arr.length - 1)  [arr[i], arr[i+1]] = [arr[i+1], arr[i]];
+        onUpdateShipping(arr);
+    };
+
+    // ── Platform CRUD ─────────────────────────────────────────────────────────
+    const addPlatform = () => {
+        if (!newPlat.name.trim()) return;
+        onUpdatePlatforms([...platforms, {
+            id: Date.now(), name: newPlat.name.trim(), fee: Number(newPlat.fee) || 0, isDefault: false,
+        }]);
+        setNewPlat({ name: '', fee: '' });
+        showToast({ message: '販路を追加しました', type: 'success' });
+    };
+    const removePlatform = id => onUpdatePlatforms(platforms.filter(p => p.id !== id));
+    const setDefaultPlatform = id => onUpdatePlatforms(platforms.map(p => ({ ...p, isDefault: p.id === id })));
+    const movePlatform = (id, dir) => {
+        const arr = [...platforms];
+        const i = arr.findIndex(p => p.id === id);
+        if (dir === 'up'   && i > 0)              [arr[i-1], arr[i]] = [arr[i], arr[i-1]];
+        if (dir === 'down' && i < arr.length - 1) [arr[i], arr[i+1]] = [arr[i+1], arr[i]];
+        onUpdatePlatforms(arr);
+    };
+
+    // ── CSV export ────────────────────────────────────────────────────────────
+    const exportCSV = () => {
+        if (!historyItems.length) { showToast({ message: '履歴データがありません', type: 'error' }); return; }
+        const hdr = ['日付','店舗名','商品名','販売価格','仕入原価','手数料','送料','利益額','利益率'];
+        const rows = historyItems.map(item =>
+            [item.date, item.shopName, item.itemName, item.price, item.cost, item.fee, item.shipping, item.profit, item.profitRate]
+            .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')
+        );
+        const csv  = '\uFEFF' + [hdr.join(','), ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), {
+            href: url, download: `furimora_${new Date().toLocaleDateString('ja-JP').replace(/\//g,'')}.csv`
+        });
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast({ message: 'CSVを書き出しました', type: 'success' });
+    };
+
+    // ── Settings export / import ──────────────────────────────────────────────
+    const exportSettings = () => {
+        const data = { version: '1.3', settings: form, shippingMethods, platforms, exportedAt: new Date().toISOString() };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url  = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: 'furimora_settings.json' });
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast({ message: '設定データを書き出しました', type: 'success' });
+    };
+    const importSettings = e => {
+        const file = e.target.files[0]; if (!file) return;
+        new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = ev => res(ev.target.result);
+            r.onerror = rej;
+            r.readAsText(file);
+        }).then(text => {
+            const data = JSON.parse(text);
+            if (data.settings)        { setForm(data.settings); onSave(data.settings); }
+            if (data.shippingMethods) onUpdateShipping(data.shippingMethods);
+            if (data.platforms)       onUpdatePlatforms(data.platforms);
+            showToast({ message: '設定を読み込みました', type: 'success' });
+        }).catch(() => showToast({ message: '設定ファイルが無効です', type: 'error' }));
+        e.target.value = '';
+    };
+
+    // ── List row helper ───────────────────────────────────────────────────────
+    const ListRow = ({ item, isDefault, onDefault, onUp, onDown, onRemove, sublabel, isFirst, isLast }) => (
+        <div className={`flex items-center gap-2 p-3 rounded-xl border ${isDefault ? 'border-blue-400 bg-blue-500/10' : 'border-gray-100 bg-gray-50'}`}>
+            <button onClick={onDefault}
+                className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${isDefault ? 'border-blue-500 bg-blue-500' : 'border-gray-300 hover:border-blue-300'}`}>
+                {isDefault && <span className="w-2 h-2 bg-white rounded-full" />}
+            </button>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-gray-800 truncate">{item.name}</p>
+                <p className="text-[10px] text-gray-400">{sublabel}</p>
+            </div>
+            <div className="flex gap-0.5 shrink-0">
+                <button onClick={onUp}   disabled={isFirst} className="p-1 text-gray-400 hover:text-blue-500 disabled:opacity-20 transition-colors"><Icon name="chevron-up"   size={13} /></button>
+                <button onClick={onDown} disabled={isLast}  className="p-1 text-gray-400 hover:text-blue-500 disabled:opacity-20 transition-colors"><Icon name="chevron-down" size={13} /></button>
+                <button onClick={onRemove}                  className="p-1 text-gray-400 hover:text-red-500 transition-colors"><Icon name="trash-2" size={13} /></button>
+            </div>
+        </div>
+    );
+
+    return (
+        <>
+            {/* Shipping management */}
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <h3 className="font-black text-sm text-gray-700">発送方法の管理</h3>
+                <input className="w-full p-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                    placeholder="配送名 (例: ネコポス)" value={newShip.name} onChange={e => setNewShip(p => ({ ...p, name: e.target.value }))} />
+                <div className="grid grid-cols-2 gap-2">
+                    <input type="number" inputMode="numeric" className="p-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        placeholder="送料" value={newShip.fee} onChange={e => setNewShip(p => ({ ...p, fee: e.target.value }))} />
+                    <input type="number" inputMode="numeric" className="p-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                        placeholder="梱包費" value={newShip.packing} onChange={e => setNewShip(p => ({ ...p, packing: e.target.value }))} />
+                </div>
+                <button onClick={addShipping} className="w-full bg-blue-500 text-white font-black py-2.5 rounded-xl hover:bg-blue-600 text-sm transition-all active:scale-[0.98]">
+                    発送方法を追加
+                </button>
+                <button onClick={() => setShowShipList(p => !p)}
+                    className="w-full flex justify-between items-center py-1.5 text-sm text-gray-500 font-bold hover:text-gray-700 transition-colors">
+                    登録済みのリストを編集 <Icon name={showShipList ? 'chevron-up' : 'chevron-down'} size={16} />
+                </button>
+                {showShipList && (
+                    <div className="space-y-2">
+                        {shippingMethods.map((m, i) => (
+                            <ListRow key={m.id} item={m}
+                                isDefault={m.isDefault} isFirst={i === 0} isLast={i === shippingMethods.length - 1}
+                                sublabel={`送料¥${m.fee}/梱包¥${m.packing}`}
+                                onDefault={() => setDefaultShipping(m.id)}
+                                onUp={() => moveShipping(m.id, 'up')} onDown={() => moveShipping(m.id, 'down')}
+                                onRemove={() => removeShipping(m.id)} />
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Platform management */}
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <h3 className="font-black text-sm text-gray-700">手数料（販路）の管理</h3>
+                <input className="w-full p-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                    placeholder="販路名 (例: メルカリ)" value={newPlat.name} onChange={e => setNewPlat(p => ({ ...p, name: e.target.value }))} />
+                <input type="number" inputMode="numeric" className="w-full p-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                    placeholder="手数料 (%)" value={newPlat.fee} onChange={e => setNewPlat(p => ({ ...p, fee: e.target.value }))} />
+                <button onClick={addPlatform} className="w-full bg-red-500 text-white font-black py-2.5 rounded-xl hover:bg-red-600 text-sm transition-all active:scale-[0.98]">
+                    販路を追加
+                </button>
+                <button onClick={() => setShowPlatList(p => !p)}
+                    className="w-full flex justify-between items-center py-1.5 text-sm text-gray-500 font-bold hover:text-gray-700 transition-colors">
+                    登録済みの手数料リスト <Icon name={showPlatList ? 'chevron-up' : 'chevron-down'} size={16} />
+                </button>
+                {showPlatList && (
+                    <div className="space-y-2">
+                        {platforms.map((p, i) => (
+                            <ListRow key={p.id} item={p}
+                                isDefault={p.isDefault} isFirst={i === 0} isLast={i === platforms.length - 1}
+                                sublabel={`手数料: ${p.fee}%`}
+                                onDefault={() => setDefaultPlatform(p.id)}
+                                onUp={() => movePlatform(p.id, 'up')} onDown={() => movePlatform(p.id, 'down')}
+                                onRemove={() => removePlatform(p.id)} />
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Basic settings */}
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="font-black text-sm mb-4 text-gray-700 flex items-center gap-2">
+                    <Icon name="user" size={18} className="text-blue-500" /> 基本設定
+                </h3>
+                <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-gray-400 font-bold ml-1">ユーザー名</label>
+                    <input className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                        placeholder="名前を入力" value={form.userName} onChange={e => set('userName', e.target.value)} />
+                </div>
+            </div>
+
+            <button onClick={() => onSave(form)} className="w-full bg-blue-500 text-white font-black py-4 rounded-2xl hover:bg-blue-600 active:scale-[0.98] transition-all shadow-lg shadow-blue-100">
+                設定を保存
+            </button>
+
+            {/* Data management */}
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <h3 className="font-black text-sm text-gray-700 flex items-center gap-2">
+                    <Icon name="database" size={18} className="text-green-500" /> データ管理
+                </h3>
+                <button onClick={exportCSV}
+                    className="w-full bg-green-500 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 transition-all text-sm active:scale-[0.98]">
+                    <Icon name="file-text" size={16} /> 履歴データをCSVとして書き出す
+                </button>
+                <button onClick={exportSettings}
+                    className="w-full bg-purple-500 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-purple-600 transition-all text-sm active:scale-[0.98]">
+                    <Icon name="download" size={16} /> 設定データを書き出す
+                </button>
+                <label className="w-full bg-orange-500 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-orange-600 transition-all text-sm active:scale-[0.98] cursor-pointer">
+                    <Icon name="upload" size={16} /> 設定データを読み込む
+                    <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={importSettings} />
+                </label>
+            </div>
+
+            {/* App info */}
+            <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                <h3 className="font-black text-sm mb-3 text-gray-500 flex items-center gap-2">
+                    <Icon name="info" size={16} className="text-gray-400" /> アプリ情報
+                </h3>
+                <div className="space-y-2 text-[11px] text-gray-500">
+                    <div className="flex justify-between"><span className="font-bold">バージョン</span><span>1.3.0</span></div>
+                    <div className="flex justify-between"><span className="font-bold">総取引件数</span><span>{historyCount}件</span></div>
+                    <div className="flex justify-between"><span className="font-bold">バックエンド</span><span>Google Apps Script</span></div>
+                </div>
+            </div>
+        </>
+    );
+};
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+const App = () => {
+    const [activeTab,    setActiveTab]    = useState('calc');
+    const [calcSubTab,   setCalcSubTab]   = useState('calculator');
+    const [histSubTab,   setHistSubTab]   = useState('list');
+    const [toast,        setToast]        = useState(null);
+
+    // ── Display / master data state ───────────────────────────────────────────
+    const [darkMode,         setDarkMode]         = useState(() => ls.get('darkMode', false));
+    const [shippingMethods,  setShippingMethods]  = useState(() => ls.get('furimora_shipping',  DEFAULT_SHIPPING));
+    const [platforms,        setPlatforms]        = useState(() => ls.get('furimora_platforms', DEFAULT_PLATFORMS));
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', darkMode);
+    }, [darkMode]);
+
+    // ── Calculator state ──────────────────────────────────────────────────────
+    const [shopName,   setShopName]   = useState('');
+    const [itemName,   setItemName]   = useState('');
+    const [price,      setPrice]      = useState('');
+    const [cost,       setCost]       = useState('');
+    const [feePercent, setFeePercent] = useState(() => {
+        const list = ls.get('furimora_platforms', DEFAULT_PLATFORMS);
+        const def  = list.find(p => p.isDefault);
+        return def ? def.fee : 10;
+    });
+    const [shipping, setShipping] = useState(() => {
+        const list = ls.get('furimora_shipping', DEFAULT_SHIPPING);
+        const def  = list.find(m => m.isDefault);
+        return def ? def.fee + def.packing : 239;
+    });
+
+    // ── History state ─────────────────────────────────────────────────────────
+    const [historyItems, setHistoryItems] = useState([]);
+    const [isSaving,     setIsSaving]     = useState(false);
+    const [isLoading,    setIsLoading]    = useState(false);
+    const [editingItem,  setEditingItem]  = useState(null);
+
+    // ── Inventory state (localStorage) ────────────────────────────────────────
+    const [inventory,        setInventory]        = useState(() => ls.get('furimora_inventory', []));
+    const [invForm,          setInvForm]          = useState({ name: '', buyPrice: '', targetPrice: '', shopName: '', memo: '' });
+    const [editingInvItem,   setEditingInvItem]   = useState(null);
+    const [editingStockItem, setEditingStockItem] = useState(null);
+
+    // ── Stock state (from history, unlisted items) ─────────────────────────────
+    const [stock,             setStock]             = useState(() => ls.get('furimora_stock', []));
+    const [invSubTab,         setInvSubTab]         = useState('stock');
+    const [stockSearch,       setStockSearch]       = useState('');
+    const [stockStatusFilter, setStockStatusFilter] = useState('all');
+    const [stockSort,         setStockSort]         = useState('newest');
+
+    // ── Settings state ────────────────────────────────────────────────────────
+    const [settings, setSettings] = useState(() => ({
+        defaultFee:      ls.get('defaultFee', 10),
+        defaultShipping: ls.get('defaultShipping', 239),
+        userName:        ls.get('userName', ''),
+    }));
+
+    // ── Computed profit ───────────────────────────────────────────────────────
+    const priceNum = Number(price)  || 0;
+    const costNum  = Number(cost)   || 0;
+    const fee      = Math.floor(priceNum * (feePercent / 100));
+    const profit   = priceNum - costNum - fee - shipping;
+    const profitRate = priceNum > 0 ? ((profit / priceNum) * 100).toFixed(1) : '0.0';
+
+    // ── Stats derived from historyItems ───────────────────────────────────────
+    const stats = useMemo(() => {
+        const now  = new Date();
+        const todayKey = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
+        const monKey   = `${now.getFullYear()}/${now.getMonth() + 1}`;
+
+        let today = 0, month = 0, totalSales = 0;
+        const shopMap  = {};
+        const monthMap = {};
+
+        historyItems.forEach(item => {
+            if (!item.date) return;
+            // Support formats: "2025/3/25 10:00:00" and "2025-03-25T..."
+            const raw = String(item.date).replace(/\//g, '-').split(' ')[0];
+            const d = new Date(raw);
+            if (isNaN(d)) return;
+            const dk = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+            const mk = `${d.getFullYear()}/${d.getMonth() + 1}`;
+            const p = Number(item.profit) || 0;
+            const pr = Number(item.price)  || 0;
+
+            if (dk === todayKey) today += p;
+            if (mk === monKey)   month += p;
+            totalSales += pr;
+
+            const shop = item.shopName || '不明';
+            shopMap[shop]  = (shopMap[shop]  || 0) + p;
+            monthMap[mk]   = (monthMap[mk]   || 0) + p;
+        });
+
+        const totalProfit  = historyItems.reduce((s, i) => s + (Number(i.profit) || 0), 0);
+        const avgProfitRate = totalSales > 0 ? ((totalProfit / totalSales) * 100).toFixed(1) : '0.0';
+
+        // Last 6 months
+        const last6 = Array.from({ length: 6 }, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+            const k = `${d.getFullYear()}/${d.getMonth() + 1}`;
+            return { label: `${d.getMonth() + 1}月`, value: monthMap[k] || 0 };
+        });
+
+        return { today, month, totalProfit, totalSales, avgProfitRate, shopMap, last6 };
+    }, [historyItems]);
+
+    // ── Fetch history from GAS ─────────────────────────────────────────────────
+    const fetchHistory = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const res  = await fetch(`${GAS_URL}?t=${Date.now()}`);
+            const data = await res.json();
+            if (Array.isArray(data)) setHistoryItems(data);
+        } catch (err) {
+            console.error('データ取得失敗:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchHistory(); }, []);
+    useEffect(() => { if (activeTab === 'history') fetchHistory(); }, [activeTab]);
+
+    // ── Save (Optimistic) ──────────────────────────────────────────────────────
+    const saveToGas = async () => {
+        if (!itemName.trim()) { setToast({ message: '商品名を入力してください', type: 'error' }); return; }
+        setIsSaving(true);
+
+        const now     = new Date();
+        const newItem = {
+            date: now.toLocaleString('ja-JP'),
+            shopName: shopName.trim(),
+            itemName: itemName.trim(),
+            price: priceNum,
+            cost:  costNum,
+            fee,
+            shipping,
+            profit,
+            profitRate,
+            _pending: true,
+            _uid: now.getTime(),
         };
 
-        const App = () => {
-            const [activeTab, setActiveTab] = useState('calc');
-            const [calcSubTab, setCalcSubTab] = useState('calculator');
-            const [historySubTab, setHistorySubTab] = useState('list');
-            
-            // State
-            const [shopName, setShopName] = useState(''); // 店舗名
-            const [itemName, setItemName] = useState(''); // 商品名
-            const [price, setPrice] = useState(0);
-            const [cost, setCost] = useState(0);
-            const [feePercent, setFeePercent] = useState(10);
-            const [shipping, setShipping] = useState(239);
-            
-            const [historyItems, setHistoryItems] = useState([]); // GASから取得した履歴
-            const [isSaving, setIsSaving] = useState(false);
+        // 1. Optimistic: immediately show in UI
+        setHistoryItems(prev => [newItem, ...prev]);
+        setToast({ message: '保存しました！', type: 'success' });
 
-            // GASのデプロイURL
-            const GAS_URL = "https://script.google.com/macros/s/AKfycbx3rimuQtzr-5DDpem9cqEpZSdcoaHWHgCKWF48Kg2jz-pY1kY2xVyMLj6vBm2fmSbI/exec";
+        // 2. Reset form
+        setShopName(''); setItemName(''); setPrice(''); setCost('');
+        setIsSaving(false);
 
-            const profit = useMemo(() => {
-                const fee = Math.floor(price * (feePercent / 100));
-                return price - cost - fee - shipping;
-            }, [price, cost, feePercent, shipping]);
+        // 3. Background POST to GAS (no-cors → can't read response)
+        fetch(GAS_URL, {
+            method: 'POST',
+            mode:   'no-cors',
+            body:   JSON.stringify(newItem),
+        }).catch(err => console.error('GAS POST失敗:', err));
 
-            const profitRate = useMemo(() => {
-                if (price <= 0) return 0;
-                return ((profit / price) * 100).toFixed(1);
-            }, [profit, price]);
+        // 4. Re-fetch after GAS has time to process
+        setTimeout(fetchHistory, 2500);
+    };
 
-            // --- 統計情報の計算 ---
-            const stats = useMemo(() => {
-                const now = new Date();
-                const todayStr = now.toLocaleDateString('ja-JP');
-                const thisMonthStr = `${now.getFullYear()}/${now.getMonth() + 1}`;
+    // ── Inventory helpers ──────────────────────────────────────────────────────
+    const persistInventory = list => { setInventory(list); ls.set('furimora_inventory', list); };
 
-                return historyItems.reduce((acc, item) => {
-                    if (!item.date) return acc;
-                    // GASの date 形式 (YYYY/MM/DD ...) を考慮
-                    const itemDate = new Date(item.date);
-                    const itemDateStr = itemDate.toLocaleDateString('ja-JP');
-                    const itemMonthStr = `${itemDate.getFullYear()}/${itemDate.getMonth() + 1}`;
+    const addInventoryItem = () => {
+        if (!invForm.name.trim()) return;
+        const bp = Number(invForm.buyPrice)    || 0;
+        const tp = Number(invForm.targetPrice) || 0;
+        const ef = Math.floor(tp * (settings.defaultFee / 100));
+        const item = {
+            ...invForm,
+            id: Date.now(),
+            addedAt:        new Date().toLocaleDateString('ja-JP'),
+            buyPrice:       bp,
+            targetPrice:    tp,
+            expectedProfit: tp - bp - ef - settings.defaultShipping,
+        };
+        persistInventory([item, ...inventory]);
+        setInvForm({ name: '', buyPrice: '', targetPrice: '', shopName: '', memo: '' });
+        setToast({ message: '在庫に追加しました', type: 'success' });
+    };
 
-                    const profit = Number(item.profit) || 0;
+    const removeInventory = id => persistInventory(inventory.filter(i => i.id !== id));
 
-                    if (itemDateStr === todayStr) {
-                        acc.today += profit;
-                    }
-                    if (itemMonthStr === thisMonthStr) {
-                        acc.month += profit;
-                    }
-                    return acc;
-                }, { today: 0, month: 0 });
-            }, [historyItems]);
+    const updateInvItem = item => {
+        persistInventory(inventory.map(i => i.id === item.id ? item : i));
+        setEditingInvItem(null);
+        setToast({ message: '更新しました', type: 'success' });
+    };
 
-            // --- 履歴を取得する関数 ---
-            const fetchHistory = async () => {
-                try {
-                    const res = await fetch(GAS_URL);
-                    const data = await res.json();
-                    if (data.status === "error") {
-                        console.error("GASエラー:", data.message);
-                    } else {
-                        setHistoryItems(Array.isArray(data) ? data : []);
-                    }
-                } catch (err) {
-                    console.error("データ取得失敗:", err);
-                }
-            };
+    const moveInvToStock = item => {
+        const tp = Number(item.targetPrice) || 0;
+        const bp = Number(item.buyPrice)    || 0;
+        const ep = tp - bp;
+        const newStock = {
+            id:         Date.now(),
+            name:       item.name || '名称未定',
+            shopName:   item.shopName || '',
+            buyPrice:   bp,
+            sellPrice:  tp,
+            profit:     ep,
+            profitRate: tp > 0 ? ((ep / tp) * 100).toFixed(1) : '0.0',
+            status:     '出品前',
+            addedAt:    new Date().toLocaleDateString('ja-JP'),
+            pinned:     false,
+        };
+        persistStock([newStock, ...stock]);
+        removeInventory(item.id);
+        setInvSubTab('stock');
+        setToast({ message: 'ストックへ移動しました', type: 'success' });
+    };
 
-            // --- 修正1: データを保存する関数 ---
-            const saveToGas = async () => {
-                if (!itemName) return alert("商品名を入力してください");
-                setIsSaving(true);
+    const soldInventory = item => {
+        setCost(item.buyPrice); setPrice(item.targetPrice);
+        setShopName(item.shopName); setItemName(item.name);
+        removeInventory(item.id);
+        setActiveTab('calc'); setCalcSubTab('calculator');
+        setToast({ message: '計算画面に転記しました', type: 'success' });
+    };
 
-                const payload = {
-                    date: new Date().toLocaleString('ja-JP'),
-                    shopName,
-                    itemName,
-                    price,
-                    cost,
-                    fee: Math.floor(price * (feePercent / 100)),
-                    shipping,
-                    profit,
-                    profitRate
-                };
+    // ── Master data helpers ────────────────────────────────────────────────────
+    const toggleDarkMode = () => {
+        const v = !darkMode;
+        setDarkMode(v);
+        ls.set('darkMode', v);
+    };
 
-                try {
-                    // POSTリクエストを送信
-                    const response = await fetch(GAS_URL, {
-                        method: "POST",
-                        mode: "no-cors", // GASのリダイレクト対策
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    // no-cors の場合、レスポンス内容は確認できないが成功とみなす
-                    alert("送信リクエストを完了しました。\n(GAS側の処理を確認してください)");
-                    
-                    // 入力をリセット
-                    setShopName('');
-                    setItemName('');
-                    setPrice(0);
-                    setCost(0);
+    const updateShippingMethods = list => {
+        setShippingMethods(list);
+        ls.set('furimora_shipping', list);
+        const def = list.find(m => m.isDefault);
+        if (def) setShipping(def.fee + def.packing);
+    };
 
-                    // 履歴を再取得（GASの処理時間を考慮して少し待つ）
-                    setTimeout(fetchHistory, 1500);
-                } catch (error) {
-                    console.error("保存失敗:", error);
-                    alert("保存に失敗しました。GASの設定を確認してください。");
-                } finally {
-                    setIsSaving(false);
-                }
-            };
+    const updatePlatforms = list => {
+        setPlatforms(list);
+        ls.set('furimora_platforms', list);
+        const def = list.find(p => p.isDefault);
+        if (def) setFeePercent(def.fee);
+    };
 
-            // --- 修正2: 履歴を取得する処理 ---
-            useEffect(() => {
-                fetchHistory();
-            }, [activeTab === 'history']);
+    // ── Stock helpers ─────────────────────────────────────────────────────────
+    const persistStock = list => { setStock(list); ls.set('furimora_stock', list); };
 
-            const renderTabButton = (id, iconName, label) => (
-                <button 
-                    onClick={() => setActiveTab(id)}
-                    className={`flex flex-col items-center justify-center flex-1 py-3 transition-colors ${activeTab === id ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                    <Icon name={iconName} size={22} />
-                    <span className="text-[10px] mt-1 font-bold">{label}</span>
-                </button>
-            );
+    const addHistoryToStock = item => {
+        const newItem = {
+            id:         Date.now(),
+            name:       item.itemName || '名称未定',
+            shopName:   item.shopName || '',
+            buyPrice:   Number(item.cost)       || 0,
+            sellPrice:  Number(item.price)      || 0,
+            profit:     Number(item.profit)     || 0,
+            profitRate: item.profitRate         || '0.0',
+            status:     '出品前',
+            addedAt:    new Date().toLocaleDateString('ja-JP'),
+            pinned:     false,
+        };
+        persistStock([newItem, ...stock]);
+        setToast({ message: 'ストックに追加しました', type: 'success' });
+    };
 
-            return (
-                <div className="flex flex-col h-dvh bg-gray-50 relative">
-                    
-                    {/* Header */}
-                    <header className="bg-white border-b border-gray-100 py-4 px-6 shrink-0 flex justify-between items-center">
-                        <h1 className="text-xl font-black text-gray-800 tracking-tighter">Furimora</h1>
-                        <div className="text-[10px] font-bold text-gray-300 px-2 py-1 border border-gray-100 rounded-lg">PRO</div>
-                    </header>
+    const removeStock = id => persistStock(stock.filter(i => i.id !== id));
 
-                    {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto px-4 sm:px-8 pt-6 pb-28">
-                        
-                        {/* CALCULATOR / RESEARCH */}
-                        {activeTab === 'calc' && (
-                            <div className="animate-in fade-in duration-300 max-w-2xl mx-auto w-full">
-                                <div className="flex bg-gray-200 rounded-lg p-1 mb-6">
-                                    <button onClick={() => setCalcSubTab('calculator')} className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${calcSubTab === 'calculator' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>計算</button>
-                                    <button onClick={() => setCalcSubTab('research')} className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${calcSubTab === 'research' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>リサーチ</button>
+    const updateStockItem = item => persistStock(stock.map(i => i.id === item.id ? item : i));
+
+    // ── History item actions ──────────────────────────────────────────────────
+    const addHistoryToInventory = item => {
+        const tp = Number(item.price) || 0;
+        const bp = Number(item.cost)  || 0;
+        const ef = Math.floor(tp * (settings.defaultFee / 100));
+        const newInv = {
+            id:             Date.now(),
+            name:           item.itemName || '名称未定',
+            shopName:       item.shopName || '',
+            buyPrice:       bp,
+            targetPrice:    tp,
+            addedAt:        new Date().toLocaleDateString('ja-JP'),
+            memo:           '',
+            expectedProfit: tp - bp - ef - settings.defaultShipping,
+        };
+        persistInventory([newInv, ...inventory]);
+        setToast({ message: 'ストックに追加しました', type: 'success' });
+    };
+
+    const deleteHistoryItem = itemKey => {
+        setHistoryItems(prev => prev.filter(i => (i._uid || i.date + i.itemName) !== itemKey));
+        setToast({ message: '削除しました', type: 'success' });
+    };
+
+    const updateHistoryItem = updated => {
+        setHistoryItems(prev => prev.map(i =>
+            (i._uid || i.date + i.itemName) === (updated._uid || updated.date + updated.itemName) ? updated : i
+        ));
+        setEditingItem(null);
+        setToast({ message: '更新しました', type: 'success' });
+    };
+
+    // ── Settings save ─────────────────────────────────────────────────────────
+    const saveSettings = s => {
+        setSettings(s);
+        ls.set('defaultFee',      s.defaultFee);
+        ls.set('defaultShipping', s.defaultShipping);
+        ls.set('userName',        s.userName);
+        setFeePercent(s.defaultFee);
+        setShipping(s.defaultShipping);
+        setToast({ message: '設定を保存しました', type: 'success' });
+    };
+
+    // ── Tab button ────────────────────────────────────────────────────────────
+    const TabBtn = ({ id, icon, label }) => (
+        <button onClick={() => setActiveTab(id)}
+            className={`flex flex-col items-center justify-center flex-1 py-3 transition-colors ${activeTab === id ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}>
+            <Icon name={icon} size={22} />
+            <span className="text-[10px] mt-1 font-bold">{label}</span>
+        </button>
+    );
+
+    // ─────────────────────────────────────────────────────────────────────────
+    return (
+        <div className="flex flex-col h-dvh bg-gray-50 relative">
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+            {/* Header */}
+            <header className="bg-white border-b border-gray-100 py-4 px-6 shrink-0 flex justify-between items-center">
+                <h1 className="text-xl font-black text-gray-800 tracking-tighter">Furimora</h1>
+                <div className="flex items-center gap-1">
+                    {isLoading && <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse mr-1" title="同期中" />}
+                    <button onClick={() => setToast({ message: '準備中です', type: 'error' })}
+                        className="p-2 text-gray-400 hover:text-indigo-500 rounded-xl hover:bg-gray-100 transition-colors" title="取扱説明書">
+                        <Icon name="book-open" size={18} />
+                    </button>
+                    <button onClick={toggleDarkMode}
+                        className="p-2 text-gray-400 hover:text-blue-500 rounded-xl hover:bg-gray-100 transition-colors" title="ダークモード">
+                        <Icon name={darkMode ? 'sun' : 'moon'} size={18} />
+                    </button>
+                    <button onClick={() => setToast({ message: '準備中です', type: 'error' })}
+                        className="text-[10px] font-bold text-gray-300 px-2 py-1 border border-gray-100 rounded-lg hover:border-gray-300 hover:text-gray-400 transition-colors ml-1">
+                        PRO
+                    </button>
+                </div>
+            </header>
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-8 pt-6 pb-28">
+
+                {/* ══ CALC ══════════════════════════════════════════════════════ */}
+                {activeTab === 'calc' && (
+                    <div className="fade-in max-w-2xl mx-auto w-full">
+                        <div className="flex bg-gray-200 rounded-lg p-1 mb-6">
+                            {[['calculator','計算'],['research','リサーチ']].map(([id, label]) => (
+                                <button key={id} onClick={() => setCalcSubTab(id)}
+                                    className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${calcSubTab === id ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {calcSubTab === 'calculator' ? (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <input className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                        placeholder="仕入れ店舗名" value={shopName} onChange={e => setShopName(e.target.value)} />
+                                    <input className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                        placeholder="商品名 *" value={itemName} onChange={e => setItemName(e.target.value)} />
                                 </div>
-                                
-                                {calcSubTab === 'calculator' ? (
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <input 
-                                                className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none" 
-                                                placeholder="仕入れ店舗名" 
-                                                value={shopName}
-                                                onChange={(e) => setShopName(e.target.value)}
-                                            />
-                                            <input 
-                                                className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none" 
-                                                placeholder="商品名" 
-                                                value={itemName}
-                                                onChange={(e) => setItemName(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] text-gray-400 font-bold ml-1">販売価格</label>
-                                                <input type="number" value={price || ''} onChange={(e) => setPrice(Number(e.target.value))} className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="0" />
-                                            </div>
-                                            <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] text-red-500 font-bold ml-1">販売先</label>
-                                                <select value={feePercent} onChange={(e) => setFeePercent(Number(e.target.value))} className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none">
-                                                    <option value={10}>メルカリ (10%)</option>
-                                                    <option value={5}>ヤフオク (5%)</option>
-                                                    <option value={0}>その他 (0%)</option>
-                                                </select>
-                                            </div>
-                                        </div>
 
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] text-gray-400 font-bold ml-1">仕入れ原価</label>
-                                                <input type="number" value={cost || ''} onChange={(e) => setCost(Number(e.target.value))} className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="0" />
-                                            </div>
-                                            <div className="flex flex-col gap-1">
-                                                <label className="text-[10px] text-blue-500 font-bold ml-1">発送方法</label>
-                                                <select value={shipping} onChange={(e) => setShipping(Number(e.target.value))} className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none">
-                                                    <option value={239}>ネコポス (¥239)</option>
-                                                    <option value={215}>ゆうパケット (¥215)</option>
-                                                    <option value={450}>宅急便コン (¥450)</option>
-                                                    <option value={0}>その他 (¥0)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex justify-around items-center text-center mt-6">
-                                            <div className="flex-1">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">利益額</p>
-                                                <p className={`text-3xl sm:text-4xl font-black ${profit < 0 ? 'text-red-500' : 'text-gray-800'}`}>¥{profit.toLocaleString()}</p>
-                                            </div>
-                                            <div className="w-px h-10 bg-gray-100"></div>
-                                            <div className="flex-1">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">利益率</p>
-                                                <p className="text-3xl sm:text-4xl font-black text-red-500">{profitRate}%</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <button 
-                                            onClick={saveToGas}
-                                            disabled={isSaving}
-                                            className={`w-full font-black py-4 rounded-2xl shadow-lg mt-4 transition-all ${isSaving ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-100 active:scale-[0.98]'}`}
-                                        >
-                                            {isSaving ? "保存中..." : "データベースに保存"}
-                                        </button>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[10px] text-gray-400 font-bold ml-1">販売価格</label>
+                                        <input type="number" inputMode="numeric" value={price} onChange={e => setPrice(e.target.value)}
+                                            className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="0" />
                                     </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <div className="h-48 bg-gray-200 rounded-[2rem] border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer">
-                                            <Icon name="barcode" size={48} />
-                                            <p className="text-sm mt-2 font-black">バーコードをスキャン</p>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                                                <p className="text-sm font-black mb-3 flex items-center gap-2 text-gray-700">
-                                                    <Icon name="trending-up" size={16} className="text-blue-500"/> Keepa 統計
-                                                </p>
-                                                <div className="h-24 flex items-end gap-1.5 px-1">
-                                                    {[30, 60, 45, 90, 70, 40, 85, 55, 65, 40].map((h, i) => (
-                                                        <div key={i} className="flex-1 bg-blue-100 rounded-t-sm" style={{ height: `${h}%` }}></div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <button className="w-full bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-3 font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">
-                                                    <Icon name="external-link" size={18} className="text-red-500" /> メルカリで検索
-                                                </button>
-                                                <button className="w-full bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-3 font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">
-                                                    <Icon name="search" size={18} className="text-blue-500" /> 価格.comで検索
-                                                </button>
-                                            </div>
-                                        </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[10px] text-red-400 font-bold ml-1">販売先</label>
+                                        <select value={feePercent} onChange={e => setFeePercent(Number(e.target.value))}
+                                            className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none text-sm">
+                                            {platforms.map(p => (
+                                                <option key={p.id} value={p.fee}>{p.name} ({p.fee}%)</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* HISTORY / ANALYSIS */}
-                        {activeTab === 'history' && (
-                            <div className="animate-in fade-in duration-300 w-full">
-                                <div className="flex bg-gray-200 rounded-lg p-1 mb-6 max-w-2xl mx-auto">
-                                    <button onClick={() => setHistorySubTab('list')} className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${historySubTab === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>履歴</button>
-                                    <button onClick={() => setHistorySubTab('analysis')} className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${historySubTab === 'analysis' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>分析</button>
                                 </div>
-                                {historySubTab === 'list' ? (
-                                    <div className="space-y-4 max-w-3xl mx-auto">
-                                        <div className="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                            <div>
-                                                <p className="text-xs opacity-80 font-bold">本日の合計利益</p>
-                                                <h2 className="text-4xl font-black mt-1">¥{stats.today.toLocaleString()}</h2>
-                                            </div>
-                                            <div className="text-right border-t sm:border-t-0 sm:border-l border-blue-500 pt-3 sm:pt-0 sm:pl-6">
-                                                <p className="text-[10px] opacity-70 font-bold uppercase">今月の累計</p>
-                                                <p className="text-xl font-bold">¥{stats.month.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {historyItems.length > 0 ? (
-                                                historyItems.map((item, index) => (
-                                                    <div key={index} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 transition-colors">
-                                                        <div className="flex justify-between items-start">
-                                                            <div>
-                                                                <h3 className="font-black text-sm text-gray-800">{item.itemName || '名称未定'}</h3>
-                                                                <p className="text-[10px] text-gray-400 mt-0.5">{item.shopName || '店舗名なし'}</p>
-                                                            </div>
-                                                            <span className="text-[10px] text-gray-400 shrink-0">{item.date ? item.date.split(' ')[0] : ''}</span>
-                                                        </div>
-                                                        <div className="flex justify-between items-end mt-3">
-                                                            <p className="text-xs text-red-500 font-black">利益: ¥{Number(item.profit).toLocaleString()} ({item.profitRate}%)</p>
-                                                            <p className="text-[10px] text-gray-500">売値: ¥{Number(item.price).toLocaleString()}</p>
-                                                        </div>
-                                                    </div>
-                                                ))
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[10px] text-gray-400 font-bold ml-1">仕入れ原価</label>
+                                        <input type="number" inputMode="numeric" value={cost} onChange={e => setCost(e.target.value)}
+                                            className="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="0" />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[10px] text-blue-400 font-bold ml-1">発送方法</label>
+                                        <select value={shipping} onChange={e => setShipping(Number(e.target.value))}
+                                            className="w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-blue-100 outline-none text-sm">
+                                            {shippingMethods.map(m => (
+                                                <option key={m.id} value={m.fee + m.packing}>{m.name} (¥{(m.fee + m.packing).toLocaleString()})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Result card */}
+                                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+                                    <div className="flex justify-around items-center text-center">
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">利益額</p>
+                                            {priceNum === 0 ? (
+                                                <p className="text-3xl sm:text-4xl font-black mt-1 text-gray-300">¥0</p>
                                             ) : (
-                                                <div className="col-span-full py-10 text-center text-gray-400 font-bold">
-                                                    履歴データがありません
-                                                </div>
+                                                <p className={`text-3xl sm:text-4xl font-black mt-1 ${profit < 0 ? 'text-red-500' : profit > 0 ? 'text-green-600' : 'text-gray-800'}`}>
+                                                    ¥{profit.toLocaleString()}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="w-px h-10 bg-gray-100" />
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">利益率</p>
+                                            {priceNum === 0 ? (
+                                                <p className="text-3xl sm:text-4xl font-black mt-1 text-gray-300">0%</p>
+                                            ) : (
+                                                <p className={`text-3xl sm:text-4xl font-black mt-1 ${Number(profitRate) < 0 ? 'text-red-500' : Number(profitRate) >= 20 ? 'text-green-600' : 'text-gray-800'}`}>
+                                                    {profitRate}%
+                                                </p>
                                             )}
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
-                                            <h3 className="font-black text-sm mb-6 text-gray-700 flex items-center gap-2">
-                                                <Icon name="bar-chart-2" size={18} className="text-blue-500" /> 月次利益推移
-                                            </h3>
-                                            <div className="h-40 flex items-end gap-2 border-b border-gray-100 px-2">
-                                                {[40, 70, 55, 95, 80, 60, 85].map((h, i) => (
-                                                    <div key={i} className="flex-1 bg-green-500 rounded-t-lg hover:bg-green-400 transition-colors" style={{ height: `${h}%` }}></div>
-                                                ))}
-                                            </div>
-                                            <div className="mt-6 flex justify-around">
-                                                <div className="text-center"><p className="text-[10px] text-gray-400 font-bold">平均利益率</p><p className="text-xl font-black">32.1%</p></div>
-                                                <div className="text-center"><p className="text-[10px] text-gray-400 font-bold">売上合計</p><p className="text-xl font-black">¥42,800</p></div>
-                                            </div>
+                                    {priceNum > 0 && (
+                                        <div className="mt-4 pt-4 border-t border-gray-50 grid grid-cols-3 gap-2 text-center">
+                                            <div><p className="text-[9px] text-gray-400 font-bold">手数料</p><p className="text-xs font-black text-gray-600">-¥{fee.toLocaleString()}</p></div>
+                                            <div><p className="text-[9px] text-gray-400 font-bold">送料</p><p className="text-xs font-black text-gray-600">-¥{shipping.toLocaleString()}</p></div>
+                                            <div><p className="text-[9px] text-gray-400 font-bold">原価</p><p className="text-xs font-black text-gray-600">-¥{costNum.toLocaleString()}</p></div>
                                         </div>
-                                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
-                                             <h3 className="font-black text-sm mb-4 text-gray-700">店舗別利益シェア</h3>
-                                             <div className="space-y-3">
-                                                {[
-                                                    {name: 'ブックオフ', val: 70, color: 'bg-blue-500'},
-                                                    {name: '古本市場', val: 20, color: 'bg-green-500'},
-                                                    {name: 'その他', val: 10, color: 'bg-gray-300'}
-                                                ].map(shop => (
-                                                    <div key={shop.name} className="space-y-1">
-                                                        <div className="flex justify-between text-[10px] font-bold">
-                                                            <span>{shop.name}</span>
-                                                            <span>{shop.val}%</span>
-                                                        </div>
-                                                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                                                            <div className={`${shop.color} h-full`} style={{width: `${shop.val}%`}}></div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                             </div>
-                                        </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
+
+                                <button onClick={saveToGas} disabled={isSaving}
+                                    className={`w-full font-black py-4 rounded-2xl shadow-lg transition-all text-white ${isSaving ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600 shadow-blue-100 active:scale-[0.98]'}`}>
+                                    {isSaving ? '保存中...' : 'データベースに保存'}
+                                </button>
+                            </div>
+                        ) : (
+                            /* ── Research sub-tab ── */
+                            <div className="space-y-4">
+                                <div className="h-40 bg-gray-100 rounded-[2rem] border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors cursor-pointer">
+                                    <Icon name="barcode" size={40} />
+                                    <p className="text-sm mt-2 font-black">バーコードをスキャン</p>
+                                    <p className="text-[10px] mt-1 text-gray-300">Coming Soon</p>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {[
+                                        { label: 'メルカリで検索', href: 'https://jp.mercari.com/search/?keyword=', color: 'text-red-500' },
+                                        { label: 'ヤフオクで検索', href: 'https://auctions.yahoo.co.jp/search/search?p=', color: 'text-purple-500' },
+                                        { label: '価格.comで検索', href: 'https://kakaku.com/', color: 'text-blue-500' },
+                                        { label: 'Amazonで検索',   href: 'https://www.amazon.co.jp/s?k=', color: 'text-orange-400' },
+                                    ].map(({ label, href, color }) => (
+                                        <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                                            className="bg-white p-4 rounded-xl border border-gray-200 flex items-center gap-3 font-bold text-sm shadow-sm hover:bg-gray-50 transition-colors">
+                                            <Icon name="external-link" size={18} className={color} /> {label}
+                                        </a>
+                                    ))}
+                                </div>
                             </div>
                         )}
-
-                        {activeTab === 'inventory' && <div className="text-center py-20 font-black text-gray-300 animate-pulse">在庫管理モジュール 構築中...</div>}
-                        {activeTab === 'settings' && <div className="text-center py-20 font-black text-gray-300 animate-pulse">システム設定 構築中...</div>}
-
                     </div>
+                )}
 
-                    {/* Tab Bar - Responsive Width */}
-                    <nav className="fixed bottom-0 left-0 right-0 flex justify-center pointer-events-none z-50">
-                        <div className="w-full max-w-4xl bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center px-4 pb-2 shrink-0 shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.08)] pointer-events-auto h-20">
-                            {renderTabButton('calc', 'calculator', '計算')}
-                            {renderTabButton('history', 'history', '履歴')}
-                            {renderTabButton('inventory', 'package', '在庫')}
-                            {renderTabButton('settings', 'settings', '設定')}
+                {/* ══ HISTORY ═══════════════════════════════════════════════════ */}
+                {activeTab === 'history' && (
+                    <div className="fade-in w-full">
+                        <div className="flex bg-gray-200 rounded-lg p-1 mb-6 max-w-2xl mx-auto">
+                            {[['list','履歴'],['analysis','分析']].map(([id, label]) => (
+                                <button key={id} onClick={() => setHistSubTab(id)}
+                                    className={`flex-1 py-2 text-sm font-black rounded-md transition-all ${histSubTab === id ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>
+                                    {label}
+                                </button>
+                            ))}
                         </div>
-                    </nav>
-                </div>
-            );
-        };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+                        {histSubTab === 'list' ? (
+                            <div className="space-y-4 max-w-3xl mx-auto">
+                                {/* Summary card */}
+                                <div className="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl shadow-blue-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div>
+                                        <p className="text-xs opacity-80 font-bold">本日の合計利益</p>
+                                        <h2 className={`text-4xl font-black mt-1 ${stats.today < 0 ? 'text-red-200' : ''}`}>¥{stats.today.toLocaleString()}</h2>
+                                    </div>
+                                    <div className="text-right border-t sm:border-t-0 sm:border-l border-blue-500 pt-3 sm:pt-0 sm:pl-6">
+                                        <p className="text-[10px] opacity-70 font-bold uppercase">今月の累計</p>
+                                        <p className="text-xl font-bold">¥{stats.month.toLocaleString()}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end">
+                                    <button onClick={fetchHistory}
+                                        className="text-[10px] text-gray-400 font-bold flex items-center gap-1 hover:text-blue-500 transition-colors">
+                                        <Icon name="refresh-cw" size={12} /> 更新
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {historyItems.length > 0 ? historyItems.map((item, idx) => {
+                                        const itemKey = item._uid || item.date + item.itemName;
+                                        return (
+                                        <div key={itemKey || idx}
+                                            className={`bg-white p-4 rounded-2xl shadow-sm border transition-colors ${item._pending ? 'border-blue-200' : 'border-gray-100 hover:border-blue-200'}`}>
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-black text-sm text-gray-800 truncate">{item.itemName || '名称未定'}</h3>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">{item.shopName || '—'}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                                    {item._pending && (
+                                                        <span className="text-[9px] bg-blue-100 text-blue-500 font-black px-1.5 py-0.5 rounded-full">同期中</span>
+                                                    )}
+                                                    <span className="text-[10px] text-gray-400">{formatDate(item.date)}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-50">
+                                                <p className={`text-xs font-black ${Number(item.profit) < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                                    ¥{Number(item.profit).toLocaleString()} ({item.profitRate}%)
+                                                </p>
+                                                <div className="flex items-center gap-1">
+                                                    <button onClick={() => addHistoryToInventory(item)}
+                                                        className="p-1.5 text-blue-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="ストックへ追加">
+                                                        <Icon name="arrow-right" size={15} />
+                                                    </button>
+                                                    <button onClick={() => setEditingItem(item)}
+                                                        className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-gray-100 transition-colors">
+                                                        <Icon name="pencil" size={13} />
+                                                    </button>
+                                                    <button onClick={() => deleteHistoryItem(itemKey)}
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 transition-colors">
+                                                        <Icon name="trash-2" size={13} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        );
+                                    }) : (
+                                        <div className="col-span-full py-16 text-center">
+                                            <Icon name="inbox" size={40} className="text-gray-200 mx-auto mb-3" />
+                                            <p className="text-gray-400 font-bold text-sm">履歴データがありません</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            /* ── Analysis sub-tab ── */
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                                {/* Monthly bar chart */}
+                                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+                                    <h3 className="font-black text-sm mb-1 text-gray-700 flex items-center gap-2">
+                                        <Icon name="bar-chart-2" size={18} className="text-blue-500" /> 月次利益推移
+                                    </h3>
+                                    <p className="text-[10px] text-gray-400 mb-4 font-bold">直近6ヶ月</p>
+                                    {(() => {
+                                        const max = Math.max(...stats.last6.map(d => Math.abs(d.value)), 1);
+                                        return (
+                                            <>
+                                                <div className="h-32 flex items-end gap-2 border-b border-gray-100 px-1">
+                                                    {stats.last6.map((d, i) => (
+                                                        <div key={i} className="flex-1 flex flex-col items-center gap-0">
+                                                            <div
+                                                                className={`w-full rounded-t-lg transition-all ${d.value >= 0 ? 'bg-green-400' : 'bg-red-300'}`}
+                                                                style={{ height: `${(Math.abs(d.value) / max) * 100}%`, minHeight: d.value !== 0 ? '4px' : '0' }}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="flex justify-between mt-2 px-1">
+                                                    {stats.last6.map((d, i) => (
+                                                        <span key={i} className="flex-1 text-center text-[9px] text-gray-400 font-bold">{d.label}</span>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                    <div className="mt-4 pt-4 border-t border-gray-50 flex justify-around">
+                                        <div className="text-center">
+                                            <p className="text-[10px] text-gray-400 font-bold">平均利益率</p>
+                                            <p className="text-xl font-black">{stats.avgProfitRate}%</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-[10px] text-gray-400 font-bold">累計売上</p>
+                                            <p className="text-xl font-black">¥{stats.totalSales.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Shop breakdown */}
+                                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+                                    <h3 className="font-black text-sm mb-4 text-gray-700 flex items-center gap-2">
+                                        <Icon name="pie-chart" size={18} className="text-purple-500" /> 店舗別利益シェア
+                                    </h3>
+                                    {(() => {
+                                        const entries = Object.entries(stats.shopMap).sort((a, b) => b[1] - a[1]);
+                                        const total   = entries.reduce((s, [, v]) => s + Math.max(v, 0), 0) || 1;
+                                        const colors  = ['bg-blue-500','bg-green-500','bg-purple-500','bg-orange-400','bg-gray-300'];
+                                        if (entries.length === 0)
+                                            return <p className="text-center text-gray-300 font-bold text-sm py-8">データなし</p>;
+                                        return (
+                                            <div className="space-y-3">
+                                                {entries.slice(0, 5).map(([name, val], i) => {
+                                                    const pct = Math.max(0, Math.round(val / total * 100));
+                                                    return (
+                                                        <div key={name} className="space-y-1">
+                                                            <div className="flex justify-between text-[10px] font-bold">
+                                                                <span className="truncate">{name}</span>
+                                                                <span className="shrink-0 ml-2">¥{val.toLocaleString()} ({pct}%)</span>
+                                                            </div>
+                                                            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                                                <div className={`${colors[i % colors.length]} h-full rounded-full`} style={{ width: `${pct}%` }} />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+                                    <div className="mt-4 pt-4 border-t border-gray-50 text-center">
+                                        <p className="text-[10px] text-gray-400 font-bold">総取引件数</p>
+                                        <p className="text-2xl font-black">{historyItems.length}件</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ══ INVENTORY ═════════════════════════════════════════════════ */}
+                {activeTab === 'inventory' && (
+                    <div className="fade-in max-w-2xl mx-auto w-full">
+                        {/* Subtab switcher */}
+                        <div className="flex bg-gray-200 rounded-lg p-1 mb-6">
+                            {[['inventory', 'ストック', inventory.length], ['stock', '在庫', stock.length]].map(([id, label, count]) => (
+                                <button key={id} onClick={() => setInvSubTab(id)}
+                                    className={`flex-1 py-2 text-sm font-black rounded-md transition-all flex items-center justify-center gap-1.5 ${invSubTab === id ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>
+                                    {label}
+                                    {count > 0 && (
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${invSubTab === id ? 'bg-blue-100 text-blue-600' : 'bg-gray-300 text-gray-500'}`}>
+                                            {count}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+
+                        {invSubTab === 'inventory' ? (
+                            <div className="space-y-4">
+                                {/* Add form */}
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                    <h3 className="font-black text-sm mb-4 text-gray-700 flex items-center gap-2">
+                                        <Icon name="plus-circle" size={18} className="text-blue-500" /> 仕入れ候補を追加
+                                    </h3>
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <input className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                                placeholder="商品名 *" value={invForm.name} onChange={e => setInvForm(p => ({ ...p, name: e.target.value }))} />
+                                            <input className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                                placeholder="仕入れ店舗" value={invForm.shopName} onChange={e => setInvForm(p => ({ ...p, shopName: e.target.value }))} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <input type="number" inputMode="numeric"
+                                                className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                                placeholder="仕入れ価格" value={invForm.buyPrice} onChange={e => setInvForm(p => ({ ...p, buyPrice: e.target.value }))} />
+                                            <input type="number" inputMode="numeric"
+                                                className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                                placeholder="目標販売価格" value={invForm.targetPrice} onChange={e => setInvForm(p => ({ ...p, targetPrice: e.target.value }))} />
+                                        </div>
+                                        <input className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                            placeholder="メモ（任意）" value={invForm.memo} onChange={e => setInvForm(p => ({ ...p, memo: e.target.value }))} />
+                                        <button onClick={addInventoryItem}
+                                            className="w-full bg-blue-500 text-white font-black py-3 rounded-xl hover:bg-blue-600 active:scale-[0.98] transition-all shadow-sm shadow-blue-100">
+                                            追加する
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* List */}
+                                {inventory.length === 0 ? (
+                                    <div className="py-16 text-center">
+                                        <Icon name="package" size={40} className="text-gray-200 mx-auto mb-3" />
+                                        <p className="text-gray-400 font-bold text-sm">仕入れ候補がありません</p>
+                                    </div>
+                                ) : inventory.map(item => {
+                                    const ep = item.expectedProfit || 0;
+                                    return (
+                                        <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-black text-sm text-gray-800 truncate">{item.name}</h3>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">{item.shopName || '—'} · {item.addedAt}</p>
+                                                    {item.memo && <p className="text-[10px] text-gray-500 mt-1 italic">{item.memo}</p>}
+                                                </div>
+                                                <span className={`text-sm font-black ml-3 shrink-0 ${ep >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                    ¥{ep.toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
+                                                <div className="flex gap-3 text-[10px] text-gray-400 font-bold">
+                                                    <span>仕入 ¥{item.buyPrice.toLocaleString()}</span>
+                                                    <span>→</span>
+                                                    <span>売値 ¥{item.targetPrice.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <button onClick={() => setEditingInvItem(item)}
+                                                        className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-gray-100 transition-colors" title="編集">
+                                                        <Icon name="pencil" size={13} />
+                                                    </button>
+                                                    <button onClick={() => moveInvToStock(item)}
+                                                        className="p-1.5 text-red-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors" title="在庫へ移動（出品）">
+                                                        <Icon name="arrow-up" size={15} />
+                                                    </button>
+                                                    <button onClick={() => removeInventory(item.id)}
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 transition-colors" title="削除">
+                                                        <Icon name="trash-2" size={13} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            /* ── 在庫 sub-tab (from history) ── */
+                            <div className="space-y-4">
+                                {/* Search + filter bar */}
+                                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                                    <div className="relative">
+                                        <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        <input className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                                            placeholder="商品名で検索" value={stockSearch} onChange={e => setStockSearch(e.target.value)} />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <select value={stockStatusFilter} onChange={e => setStockStatusFilter(e.target.value)}
+                                            className="flex-1 p-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-100">
+                                            <option value="all">すべての状態</option>
+                                            {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                        <select value={stockSort} onChange={e => setStockSort(e.target.value)}
+                                            className="flex-1 p-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-100">
+                                            <option value="newest">新しい順</option>
+                                            <option value="oldest">古い順</option>
+                                            <option value="name">名前順</option>
+                                            <option value="profit">利益順</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                {/* Stock items */}
+                                {(() => {
+                                    let items = [...stock];
+                                    if (stockSearch.trim()) items = items.filter(i => i.name.includes(stockSearch.trim()));
+                                    if (stockStatusFilter !== 'all') items = items.filter(i => i.status === stockStatusFilter);
+                                    if      (stockSort === 'oldest') items.sort((a, b) => a.id - b.id);
+                                    else if (stockSort === 'name')   items.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+                                    else if (stockSort === 'profit') items.sort((a, b) => b.profit - a.profit);
+                                    else                             items.sort((a, b) => b.id - a.id);
+                                    // pinned first
+                                    items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+
+                                    if (items.length === 0) return (
+                                        <div className="py-16 text-center">
+                                            <Icon name="inbox" size={40} className="text-gray-200 mx-auto mb-3" />
+                                            <p className="text-gray-400 font-bold text-sm">
+                                                {stock.length === 0 ? '履歴の → ボタンで追加できます' : '条件に一致するストックがありません'}
+                                            </p>
+                                        </div>
+                                    );
+
+                                    return items.map(item => {
+                                        const statusColor = STATUS_COLORS[item.status] || 'bg-gray-100 text-gray-400';
+                                        const profitNum   = Number(item.profit) || 0;
+                                        return (
+                                            <div key={item.id}
+                                                className={`bg-white p-4 rounded-2xl shadow-sm border transition-colors ${item.pinned ? 'border-yellow-300' : 'border-gray-100 hover:border-blue-200'}`}>
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <h3 className="font-black text-sm text-gray-800 truncate">{item.name}</h3>
+                                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 ${statusColor}`}>{item.status}</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-400 mt-0.5">{item.shopName || '—'} · {item.addedAt}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-0.5 shrink-0">
+                                                        <button onClick={() => updateStockItem({ ...item, pinned: !item.pinned })}
+                                                            className={`p-1.5 rounded-lg transition-colors ${item.pinned ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50' : 'text-gray-300 hover:text-yellow-500 hover:bg-yellow-50'}`}
+                                                            title="スタック（固定表示）">
+                                                            <Icon name="star" size={13} />
+                                                        </button>
+                                                        <button onClick={() => setEditingStockItem(item)}
+                                                            className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-gray-100 transition-colors" title="編集">
+                                                            <Icon name="pencil" size={13} />
+                                                        </button>
+                                                        <button onClick={() => removeStock(item.id)}
+                                                            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 transition-colors">
+                                                            <Icon name="trash-2" size={13} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-3 pt-2 border-t border-gray-50 flex justify-between items-center gap-2">
+                                                    <div className="flex gap-2 text-[10px] font-bold shrink-0">
+                                                        <span className="text-gray-400">仕入 ¥{item.buyPrice.toLocaleString()}</span>
+                                                        <span className="text-gray-300">→</span>
+                                                        <span className={profitNum >= 0 ? 'text-green-600' : 'text-red-500'}>
+                                                            ¥{profitNum.toLocaleString()} ({item.profitRate}%)
+                                                        </span>
+                                                    </div>
+                                                    <select value={item.status}
+                                                        onChange={e => updateStockItem({ ...item, status: e.target.value })}
+                                                        className="text-[11px] font-bold border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 outline-none focus:ring-1 focus:ring-blue-100 shrink-0">
+                                                        {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ══ SETTINGS ══════════════════════════════════════════════════ */}
+                {activeTab === 'settings' && (
+                    <div className="fade-in max-w-2xl mx-auto w-full space-y-6">
+                        <SettingsPanel
+                            settings={settings} onSave={saveSettings} historyCount={historyItems.length}
+                            historyItems={historyItems}
+                            darkMode={darkMode} onToggleDark={toggleDarkMode}
+                            shippingMethods={shippingMethods} onUpdateShipping={updateShippingMethods}
+                            platforms={platforms} onUpdatePlatforms={updatePlatforms}
+                            showToast={setToast}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {/* Edit Modals (unified) */}
+            {editingItem      && <UnifiedEditModal title="履歴を編集"       item={editingItem}      onSave={updateHistoryItem}                   onClose={() => setEditingItem(null)}      platforms={platforms} shippingMethods={shippingMethods} />}
+            {editingInvItem   && <UnifiedEditModal title="仕入れ候補を編集" item={editingInvItem}   onSave={updateInvItem}                        onClose={() => setEditingInvItem(null)}   platforms={platforms} shippingMethods={shippingMethods} showMemo />}
+            {editingStockItem && <UnifiedEditModal title="在庫を編集"       item={editingStockItem} onSave={i => { updateStockItem(i); setEditingStockItem(null); setToast({ message: '更新しました', type: 'success' }); }} onClose={() => setEditingStockItem(null)} platforms={platforms} shippingMethods={shippingMethods} />}
+
+            {/* Tab bar */}
+            <nav className="fixed bottom-0 left-0 right-0 flex justify-center pointer-events-none z-50">
+                <div className="w-full max-w-4xl bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center px-4 pb-2 shrink-0 shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.08)] pointer-events-auto h-20">
+                    <TabBtn id="calc"      icon="calculator" label="計算" />
+                    <TabBtn id="history"   icon="history"    label="履歴" />
+                    <TabBtn id="inventory" icon="package"    label="在庫" />
+                    <TabBtn id="settings"  icon="settings"   label="設定" />
+                </div>
+            </nav>
+        </div>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
 </body>
 </html>
